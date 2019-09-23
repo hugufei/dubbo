@@ -39,6 +39,13 @@ import java.lang.annotation.Target;
  * @see URL
  * @see ExtensionLoader
  */
+// 表示实现类是否可以被激活
+// 通常被用在一个接口有许多实现类,但是这些实现类特定条件下才能使用，比如RouterFactory路由工厂接口
+// 它的实现类有TagRouterFactory，ConditionRouterFactory等
+// 在调用的时候，需要根据配置的一些信息来决定需不需要加载，而@Activate就提供这个功能。
+// 修饰了这个注解的类，如果注解上没有任何值，则代表无条件激活，有value时，表示参数为有效值时激活。
+// 比如配置了cache="lru"， 自动激活CacheFilter，如果group=provider，表示只对提供方激活
+// 【group可选“provider”或“consumer”】
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.METHOD})
@@ -50,6 +57,7 @@ public @interface Activate {
      * @return group names to match
      * @see ExtensionLoader#getActivateExtension(URL, String, String)
      */
+    // 可选“provider”或“consumer”
     String[] group() default {};
 
     /**
@@ -63,6 +71,7 @@ public @interface Activate {
      * @see ExtensionLoader#getActivateExtension(URL, String)
      * @see ExtensionLoader#getActivateExtension(URL, String, String)
      */
+    // 当指定的键出现在URL的参数中时，激活当前扩展名。
     String[] value() default {};
 
     /**

@@ -51,6 +51,7 @@ import java.lang.annotation.Target;
  * instead of reporting which extract extension implementation fails and the extract reason.
  * </p>
  */
+//修饰在接口上，value代表接口默认的扩展点名
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})

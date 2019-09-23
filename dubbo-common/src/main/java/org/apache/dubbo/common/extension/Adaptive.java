@@ -30,6 +30,12 @@ import java.lang.annotation.Target;
  * @see ExtensionLoader
  * @see URL
  */
+// 可修饰在类和方法上
+// 1) 修饰在类上时，表示为接口的代理类实现
+// 2) 修饰在方法上时，一般是没有人工的代理类实现，需要依赖dubbo自动生成代理类。
+//  而这个代理类所对应的实例在调用某个方法时，如果这个类被 @Adaptive修饰了，则从URL中取值作为扩展点名去加载实现类并实例化
+//  最后再使用这个实例调用对应的方法。
+//  Adaptive的值一般就是在这个场景中才有用，用来指定可以从URL中的哪个key来获取对应的值。
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.METHOD})
@@ -55,6 +61,7 @@ public @interface Adaptive {
      *
      * @return parameter names in URL
      */
+    // 从URL中取那个key的值作为扩展点名去加载实现类并实例化
     String[] value() default {};
 
 }
