@@ -27,6 +27,8 @@ import java.util.List;
 /**
  * AdaptiveExtensionFactory
  */
+// @Adaptive修饰在类上面
+// 表示AdaptiveExtensionFactory为ExtensionFactory接口的默认代理类
 @Adaptive
 public class AdaptiveExtensionFactory implements ExtensionFactory {
 

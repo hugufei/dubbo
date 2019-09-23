@@ -76,6 +76,7 @@ public class ExtensionLoader<T> {
 
     private static final Pattern NAME_SEPARATOR = Pattern.compile("\\s*[,]+\\s*");
 
+    // key为接口类 ，value为 ExtensionLoader，就是一个缓存
     private static final ConcurrentMap<Class<?>, ExtensionLoader<?>> EXTENSION_LOADERS = new ConcurrentHashMap<>();
 
     private static final ConcurrentMap<Class<?>, Object> EXTENSION_INSTANCES = new ConcurrentHashMap<>();
@@ -84,25 +85,38 @@ public class ExtensionLoader<T> {
 
     private final Class<?> type;
 
+    // 这个其实就是AdaptiveExtensionFactory，表示扩展机制的工厂，在Dubbo里面有SPI扩展机制，也有Spring扩展机制
     private final ExtensionFactory objectFactory;
 
     private final ConcurrentMap<Class<?>, String> cachedNames = new ConcurrentHashMap<>();
 
+    // 接口对应的所有 实现类 的缓存 ，
     private final Holder<Map<String, Class<?>>> cachedClasses = new Holder<>();
 
     private final Map<String, Object> cachedActivates = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Holder<Object>> cachedInstances = new ConcurrentHashMap<>();
+
+    //目标接口的 代理类实例
     private final Holder<Object> cachedAdaptiveInstance = new Holder<>();
+
+    //目标接口的 代理类
     private volatile Class<?> cachedAdaptiveClass = null;
+
+
     private String cachedDefaultName;
     private volatile Throwable createAdaptiveInstanceError;
 
+    // 缓存的所有的包装类WrapperClass
     private Set<Class<?>> cachedWrapperClasses;
 
     private Map<String, IllegalStateException> exceptions = new ConcurrentHashMap<>();
 
     private ExtensionLoader(Class<?> type) {
         this.type = type;
+        // ExtensionFactory表示扩展机制的工厂，在Dubbo里面有SPI扩展机制，也有Spring扩展机制
+        // 对于一个接口，比如Car接口，有两种实现类：
+        // 1）一种就是我们自定义的实现类，比如RedCar
+        // 2）还有一种就是代理类 ，对于代理类，可以由我们自己实现，也可以让Dubbo帮我们实现，而代理类主要就是依赖注入时使用
         objectFactory = (type == ExtensionFactory.class ? null : ExtensionLoader.getExtensionLoader(ExtensionFactory.class).getAdaptiveExtension());
     }
 
@@ -110,6 +124,8 @@ public class ExtensionLoader<T> {
         return type.isAnnotationPresent(SPI.class);
     }
 
+    // 获取接口对应的 ExtensionLoader，（一个接口，对应一个ExtensionLoader）
+    // 如果type为ExtensionLoader类型，则返回的其实是AdaptiveExtensionFactory代理类？？？？
     @SuppressWarnings("unchecked")
     public static <T> ExtensionLoader<T> getExtensionLoader(Class<T> type) {
         if (type == null) {
@@ -122,7 +138,7 @@ public class ExtensionLoader<T> {
             throw new IllegalArgumentException("Extension type (" + type +
                     ") is not an extension, because it is NOT annotated with @" + SPI.class.getSimpleName() + "!");
         }
-
+        // 缓存机制
         ExtensionLoader<T> loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         if (loader == null) {
             EXTENSION_LOADERS.putIfAbsent(type, new ExtensionLoader<T>(type));
@@ -334,6 +350,8 @@ public class ExtensionLoader<T> {
      * Find the extension with the given name. If the specified name is not found, then {@link IllegalStateException}
      * will be thrown.
      */
+    // 返回name所对应的实现类的实例，并缓存
+    // 比如spi文件中的配置是red = com.learn.dubbo_spi.impl.RedCar， 这里的name指的是red
     @SuppressWarnings("unchecked")
     public T getExtension(String name) {
         if (StringUtils.isEmpty(name)) {
@@ -348,6 +366,7 @@ public class ExtensionLoader<T> {
             synchronized (holder) {
                 instance = holder.get();
                 if (instance == null) {
+                    // 创建实例
                     instance = createExtension(name);
                     holder.set(instance);
                 }
@@ -470,6 +489,9 @@ public class ExtensionLoader<T> {
         }
     }
 
+    // 这个方法会先看实现类是否存在代理类
+    // 如果不存在dubbo会用代码创建一个代理类
+    // 这个代理类会从URL里获取参数值从而找到目标实现类
     @SuppressWarnings("unchecked")
     public T getAdaptiveExtension() {
         Object instance = cachedAdaptiveInstance.get();
@@ -520,8 +542,11 @@ public class ExtensionLoader<T> {
         return new IllegalStateException(buf.toString());
     }
 
+    // 返回name所对应的实现类的实例
+    // 包含依赖注入和AOP
     @SuppressWarnings("unchecked")
     private T createExtension(String name) {
+        // 解析文件，加载文件里面对应的key和实现类的关系map
         Class<?> clazz = getExtensionClasses().get(name);
         if (clazz == null) {
             throw findException(name);
@@ -532,7 +557,9 @@ public class ExtensionLoader<T> {
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
                 instance = (T) EXTENSION_INSTANCES.get(clazz);
             }
+            // 依赖注入
             injectExtension(instance);
+            // AOP
             Set<Class<?>> wrapperClasses = cachedWrapperClasses;
             if (CollectionUtils.isNotEmpty(wrapperClasses)) {
                 for (Class<?> wrapperClass : wrapperClasses) {
@@ -546,10 +573,12 @@ public class ExtensionLoader<T> {
         }
     }
 
+    // 依赖注入,依赖ExtensionFactory
     private T injectExtension(T instance) {
         try {
             if (objectFactory != null) {
                 for (Method method : instance.getClass().getMethods()) {
+                    // set方法注入
                     if (isSetter(method)) {
                         /**
                          * Check {@link DisableInject} to see if we need auto injection for this property
@@ -614,6 +643,7 @@ public class ExtensionLoader<T> {
         return getExtensionClasses().get(name);
     }
 
+    // 获取接口对应的所有的实现类，并缓存
     private Map<String, Class<?>> getExtensionClasses() {
         Map<String, Class<?>> classes = cachedClasses.get();
         if (classes == null) {
@@ -628,15 +658,22 @@ public class ExtensionLoader<T> {
         return classes;
     }
 
+    // 从文件中加载 接口对应的所有的实现类
     // synchronized in getExtensionClasses
     private Map<String, Class<?>> loadExtensionClasses() {
+
         cacheDefaultExtensionName();
 
         Map<String, Class<?>> extensionClasses = new HashMap<>();
+        // 从 META-INF/dubbo/internal/目录加载实现类，加入extensionClasses中
         loadDirectory(extensionClasses, DUBBO_INTERNAL_DIRECTORY, type.getName());
         loadDirectory(extensionClasses, DUBBO_INTERNAL_DIRECTORY, type.getName().replace("org.apache", "com.alibaba"));
+
+        // 从 META-INF/dubbo/目录加载
         loadDirectory(extensionClasses, DUBBO_DIRECTORY, type.getName());
         loadDirectory(extensionClasses, DUBBO_DIRECTORY, type.getName().replace("org.apache", "com.alibaba"));
+
+        // 从 META-INF/services/目录加载
         loadDirectory(extensionClasses, SERVICES_DIRECTORY, type.getName());
         loadDirectory(extensionClasses, SERVICES_DIRECTORY, type.getName().replace("org.apache", "com.alibaba"));
         return extensionClasses;
@@ -663,6 +700,7 @@ public class ExtensionLoader<T> {
     }
 
     private void loadDirectory(Map<String, Class<?>> extensionClasses, String dir, String type) {
+        //文件路径，比如 /services/com.learn.dubbo_spi.api.Car
         String fileName = dir + type;
         try {
             Enumeration<java.net.URL> urls;
@@ -718,15 +756,17 @@ public class ExtensionLoader<T> {
         }
     }
 
+    // 加载类
     private void loadClass(Map<String, Class<?>> extensionClasses, java.net.URL resourceURL, Class<?> clazz, String name) throws NoSuchMethodException {
         if (!type.isAssignableFrom(clazz)) {
             throw new IllegalStateException("Error occurred when loading extension class (interface: " +
                     type + ", class line: " + clazz.getName() + "), class "
                     + clazz.getName() + " is not subtype of interface.");
         }
+        // 如果类有Adaptive注解，则创建代理类
         if (clazz.isAnnotationPresent(Adaptive.class)) {
             cacheAdaptiveClass(clazz);
-        } else if (isWrapperClass(clazz)) {
+        } else if (isWrapperClass(clazz)) {// 如果类是包装类，则加入缓存
             cacheWrapperClass(clazz);
         } else {
             clazz.getConstructor();
@@ -817,6 +857,8 @@ public class ExtensionLoader<T> {
      * <p>
      * which has Constructor with given class type as its only argument
      */
+    // 判断一个类是不是Wrapper类
+    // 就是判断这个类有没有 入参 为 type的构造函数
     private boolean isWrapperClass(Class<?> clazz) {
         try {
             clazz.getConstructor(type);
@@ -839,9 +881,13 @@ public class ExtensionLoader<T> {
         return extension.value();
     }
 
+    //创建目标接口的代理类
     @SuppressWarnings("unchecked")
     private T createAdaptiveExtension() {
         try {
+            // 1) 找到接口的代理类
+            // 2) 实例化代理类
+            // 3) 注入代理类
             return injectExtension((T) getAdaptiveExtensionClass().newInstance());
         } catch (Exception e) {
             throw new IllegalStateException("Can't create adaptive extension " + type + ", cause: " + e.getMessage(), e);
@@ -853,9 +899,11 @@ public class ExtensionLoader<T> {
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;
         }
+        // 如果没有手动实现接口的代理类，那么Dubbo就会自动给你实现一个
         return cachedAdaptiveClass = createAdaptiveExtensionClass();
     }
 
+    // Dubbo自动创建接口的代理类
     private Class<?> createAdaptiveExtensionClass() {
         String code = new AdaptiveClassCodeGenerator(type, cachedDefaultName).generate();
         ClassLoader classLoader = findClassLoader();

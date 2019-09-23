@@ -17,7 +17,12 @@
 package org.apache.dubbo.common.extension;
 
 /**
- * ExtensionFactory
+ * ExtensionFactory类
+ *
+ * 表示扩展机制的工厂，在Dubbo里面有SPI扩展机制，也有Spring扩展机制
+ * 对于一个接口，比如Car接口，有两种实现类：
+ * 1）一种就是我们自定义的实现类，比如RedCar
+ * 2）还有一种就是代理类，对于代理类，可以由我们自己实现，也可以让Dubbo帮我们实现，而代理类主要就是依赖注入时使用
  */
 @SPI
 public interface ExtensionFactory {
