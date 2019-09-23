@@ -76,37 +76,39 @@ public class ExtensionLoader<T> {
 
     private static final Pattern NAME_SEPARATOR = Pattern.compile("\\s*[,]+\\s*");
 
-    // key为接口类 ，value为 ExtensionLoader，就是一个缓存
+    // 全局对象： key为接口类 ，value为对应的 ExtensionLoader对象
     private static final ConcurrentMap<Class<?>, ExtensionLoader<?>> EXTENSION_LOADERS = new ConcurrentHashMap<>();
 
+    // 全局对象： key为接口类 ，value为对应的 ExtensionLoader对象
     private static final ConcurrentMap<Class<?>, Object> EXTENSION_INSTANCES = new ConcurrentHashMap<>();
 
     // ==============================
 
+    // 接口类型
     private final Class<?> type;
 
-    // 这个其实就是AdaptiveExtensionFactory，表示扩展机制的工厂，在Dubbo里面有SPI扩展机制，也有Spring扩展机制
+    // 扩展机制的工厂，在Dubbo里面有SPI扩展机制，也有Spring扩展机制
+    // 这里这个对象就是AdaptiveExtensionFactory，依赖注入的时候会使用这个类
     private final ExtensionFactory objectFactory;
 
     private final ConcurrentMap<Class<?>, String> cachedNames = new ConcurrentHashMap<>();
 
-    // 接口对应的所有 实现类 的缓存 ，
+    // name --> 实现类 的缓存
     private final Holder<Map<String, Class<?>>> cachedClasses = new Holder<>();
 
     private final Map<String, Object> cachedActivates = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Holder<Object>> cachedInstances = new ConcurrentHashMap<>();
 
-    //目标接口的 代理类实例
+    // 该接口对应的 代理类实例【唯一】
     private final Holder<Object> cachedAdaptiveInstance = new Holder<>();
 
-    //目标接口的 代理类
+    // 该接口对应的 代理类【唯一】
     private volatile Class<?> cachedAdaptiveClass = null;
-
 
     private String cachedDefaultName;
     private volatile Throwable createAdaptiveInstanceError;
 
-    // 缓存的所有的包装类WrapperClass
+    // 该接口对应的 所有的包装类WrapperClass
     private Set<Class<?>> cachedWrapperClasses;
 
     private Map<String, IllegalStateException> exceptions = new ConcurrentHashMap<>();
@@ -117,6 +119,8 @@ public class ExtensionLoader<T> {
         // 对于一个接口，比如Car接口，有两种实现类：
         // 1）一种就是我们自定义的实现类，比如RedCar
         // 2）还有一种就是代理类 ，对于代理类，可以由我们自己实现，也可以让Dubbo帮我们实现，而代理类主要就是依赖注入时使用
+
+        //注意：这里有个隐藏逻辑，就是会初始化objectFactory
         objectFactory = (type == ExtensionFactory.class ? null : ExtensionLoader.getExtensionLoader(ExtensionFactory.class).getAdaptiveExtension());
     }
 
@@ -125,7 +129,6 @@ public class ExtensionLoader<T> {
     }
 
     // 获取接口对应的 ExtensionLoader，（一个接口，对应一个ExtensionLoader）
-    // 如果type为ExtensionLoader类型，则返回的其实是AdaptiveExtensionFactory代理类？？？？
     @SuppressWarnings("unchecked")
     public static <T> ExtensionLoader<T> getExtensionLoader(Class<T> type) {
         if (type == null) {
@@ -360,6 +363,7 @@ public class ExtensionLoader<T> {
         if ("true".equals(name)) {
             return getDefaultExtension();
         }
+        //初始化Holder对象，第一次进来时value为空
         Holder<Object> holder = getOrCreateHolder(name);
         Object instance = holder.get();
         if (instance == null) {
@@ -489,9 +493,9 @@ public class ExtensionLoader<T> {
         }
     }
 
-    // 这个方法会先看实现类是否存在代理类
-    // 如果不存在dubbo会用代码创建一个代理类
-    // 这个代理类会从URL里获取参数值从而找到目标实现类
+    // 获取目标接口的代理实现类。
+    // 1）先看实现类是否存在代理类
+    // 2）不存在dubbo会用代码创建一个代理类：这个代理类会从URL里获取参数值从而找到目标实现类
     @SuppressWarnings("unchecked")
     public T getAdaptiveExtension() {
         Object instance = cachedAdaptiveInstance.get();
@@ -552,6 +556,7 @@ public class ExtensionLoader<T> {
             throw findException(name);
         }
         try {
+            // 创建实例
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
             if (instance == null) {
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
@@ -563,6 +568,7 @@ public class ExtensionLoader<T> {
             Set<Class<?>> wrapperClasses = cachedWrapperClasses;
             if (CollectionUtils.isNotEmpty(wrapperClasses)) {
                 for (Class<?> wrapperClass : wrapperClasses) {
+                    //用当前的实例对象，初始化出来一个wrapper对象。AOP
                     instance = injectExtension((T) wrapperClass.getConstructor(type).newInstance(instance));
                 }
             }
@@ -586,14 +592,20 @@ public class ExtensionLoader<T> {
                         if (method.getAnnotation(DisableInject.class) != null) {
                             continue;
                         }
+                        // pt为待注入的接口类型
                         Class<?> pt = method.getParameterTypes()[0];
                         if (ReflectUtils.isPrimitives(pt)) {
                             continue;
                         }
                         try {
+                            // property为setXXX方法后的XXX名
                             String property = getSetterProperty(method);
+                            // 获取某一个接口的实现类实例（代理类也是接口的实例）
+                            // pt为待注入的接口类型
+                            // property为setXXX方法后的XXX名
                             Object object = objectFactory.getExtension(pt, property);
                             if (object != null) {
+                                // 反射调用
                                 method.invoke(instance, object);
                             }
                         } catch (Exception e) {
@@ -763,7 +775,7 @@ public class ExtensionLoader<T> {
                     type + ", class line: " + clazz.getName() + "), class "
                     + clazz.getName() + " is not subtype of interface.");
         }
-        // 如果类有Adaptive注解，则创建代理类
+        // 如果实现类有@Adaptive注解，则表示该实现类为这个接口唯一的代理类
         if (clazz.isAnnotationPresent(Adaptive.class)) {
             cacheAdaptiveClass(clazz);
         } else if (isWrapperClass(clazz)) {// 如果类是包装类，则加入缓存
@@ -881,7 +893,7 @@ public class ExtensionLoader<T> {
         return extension.value();
     }
 
-    //创建目标接口的代理类
+    //创建目标接口的 【代理类】的【实例对象】
     @SuppressWarnings("unchecked")
     private T createAdaptiveExtension() {
         try {

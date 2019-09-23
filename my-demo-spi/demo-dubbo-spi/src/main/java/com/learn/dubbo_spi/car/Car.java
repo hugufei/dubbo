@@ -1,4 +1,4 @@
-package com.learn.dubbo_spi.api;
+package com.learn.dubbo_spi.car;
 
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.Adaptive;

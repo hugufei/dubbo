@@ -43,6 +43,11 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
         factories = Collections.unmodifiableList(list);
     }
 
+    // 这个方法会调用SpiExtensionFactory或SpringExtensionFactory的getExtension方法。
+    // getExtension方法实际上就是获取某一个接口的实现类实例（代理类也是接口的实例）
+    // 1）SpiExtensionFactory会调用getAdaptiveExtension()返回代理对象
+    // 2）SpringExtensionFactory会给我们返回spring容器中已经存在的名字为property的bean
+    // 3) 如果spring中不存在，则继续会从SpiExtensionFactory中获取代理对象
     @Override
     public <T> T getExtension(Class<T> type, String name) {
         for (ExtensionFactory factory : factories) {

@@ -21,6 +21,8 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
        http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd">
 
-    <bean id="springCar" class="com.learn.dubbo_spi.impl.SpringCar"/>
+    <bean id="springCar" class="com.learn.dubbo_spi.car.impls.SpringCar"/>
+    <bean id="boy" class="com.learn.dubbo_spi.gender.Boy"/>
+    <bean id="girl" class="com.learn.dubbo_spi.gender.Girl"/>
 
 </beans>

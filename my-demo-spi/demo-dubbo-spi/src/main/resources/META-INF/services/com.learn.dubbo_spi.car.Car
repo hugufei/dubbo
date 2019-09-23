@@ -1,0 +1,5 @@
+red = com.learn.dubbo_spi.car.impls.RedCar
+black = com.learn.dubbo_spi.car.impls.BlackCar
+com.learn.dubbo_spi.car.wrapper.CarWrapper
+
+

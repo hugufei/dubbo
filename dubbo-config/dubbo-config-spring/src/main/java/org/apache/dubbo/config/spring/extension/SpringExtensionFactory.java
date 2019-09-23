@@ -70,11 +70,14 @@ public class SpringExtensionFactory implements ExtensionFactory {
     public <T> T getExtension(Class<T> type, String name) {
 
         //SPI should be get from SpiExtensionFactory
+
+        //只要需要注入的接口有@SPI注解，那么还是去SpiExtensionFactory取吧
         if (type.isInterface() && type.isAnnotationPresent(SPI.class)) {
             return null;
         }
 
         for (ApplicationContext context : CONTEXTS) {
+            //根据name获取spring中的bean并返回
             if (context.containsBean(name)) {
                 Object bean = context.getBean(name);
                 if (type.isInstance(bean)) {
@@ -83,6 +86,7 @@ public class SpringExtensionFactory implements ExtensionFactory {
             }
         }
 
+        //按名称取不到，则会按类型去取
         logger.warn("No spring extension (bean) named:" + name + ", try to find an extension (bean) of type " + type.getName());
 
         if (Object.class == type) {
