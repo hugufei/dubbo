@@ -1,7 +1,5 @@
 package com.learn.dubbo_spi.gender;
 
-import org.apache.dubbo.common.URL;
-
 public class Boy implements Gender {
 
     @Override

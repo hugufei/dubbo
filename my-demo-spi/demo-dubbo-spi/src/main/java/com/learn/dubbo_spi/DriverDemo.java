@@ -25,7 +25,7 @@ public class DriverDemo {
         Map<String, String> map = new HashMap<>();
         map.put("carType", "black");
         URL url = new URL("", "", 0, map);
-        driver.driveCar(url);
+        driver.doDrive(url);
 
 //        try {
 //            System.in.read();
