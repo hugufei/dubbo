@@ -1,0 +1,4 @@
+red = com.learn.dubbo_spi.impl.RedCar
+black = com.learn.dubbo_spi.impl.BlackCar
+
+
