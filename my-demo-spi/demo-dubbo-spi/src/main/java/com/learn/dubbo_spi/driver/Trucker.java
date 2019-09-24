@@ -36,6 +36,6 @@ public class Trucker implements Driver {
         car.getColor(url);
         boy.getGender();
         girl.getGender();
-        gender.getGender();
+        //gender.getGender();
     }
 }
