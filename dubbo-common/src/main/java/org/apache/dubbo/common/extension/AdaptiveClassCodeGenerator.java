@@ -30,7 +30,39 @@ import org.apache.dubbo.common.utils.StringUtils;
 
 /**
  * Code generator for Adaptive class
+ *
+ * dubbo 默认的为接口实现 代理类 的代码生成工具
+ *
+ * PS: 可以使用arthas查看Car的默认代理类： https://github.com/alibaba/arthas/blob/master/README_CN.md
+ *
+ * 说白了就是 从URL中获取@Adaptive注解配置的参数的值，再从ExtensionLoader获取对应的实例
+
+    @SPI
+    public interface Car {
+        @Adaptive(value = "carType")
+        public void getColor(URL url);
+    }
+ *
+ *  这个接口生成出来的代理类长这样：
+ *
+ *  public class Car$Adaptive implements Car {
+
+        public void getColor(URL uRL) {
+            if (uRL == null) {
+            throw new IllegalArgumentException("url == null");
+            }
+            URL uRL2 = uRL;
+            String string = uRL2.getParameter("carType");
+            if (string == null) {
+            throw new IllegalStateException(new StringBuffer().append("Failed to get extension (com.learn.dubbo_spi.car.Car) name from url (").append(uRL2.toString()).append(") use keys([carType])").toString());
+            }
+            Car car = (Car)ExtensionLoader.getExtensionLoader(Car.class).getExtension(string);
+            car.getColor(uRL);
+        }
+    }
+ *
  */
+//
 public class AdaptiveClassCodeGenerator {
     
     private static final Logger logger = LoggerFactory.getLogger(AdaptiveClassCodeGenerator.class);
