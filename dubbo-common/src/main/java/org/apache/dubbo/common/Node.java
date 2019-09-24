@@ -19,6 +19,7 @@ package org.apache.dubbo.common;
 /**
  * Node. (API/SPI, Prototype, ThreadSafe)
  */
+// 节点的接口
 public interface Node {
 
     /**
@@ -26,6 +27,7 @@ public interface Node {
      *
      * @return url.
      */
+    // 获得节点地址
     URL getUrl();
 
     /**
@@ -33,11 +35,13 @@ public interface Node {
      *
      * @return available.
      */
+    // 判断节点是否可用
     boolean isAvailable();
 
     /**
      * destroy.
      */
+    // 销毁节点
     void destroy();
 
 }

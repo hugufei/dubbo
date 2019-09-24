@@ -31,9 +31,19 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * @date 2017/11/23
+ *
+ * 服务提供者和消费者注册表
+ * 存储JVM进程中服务提供者和消费者的Invoker
+ *
+ * 该类也是被运用在QOS中，包括上面的两个类，都跟QOS中的Offline下线服务命令和ls列出消费者和提供者逻辑实现有关系
+ *
  */
 public class ProviderConsumerRegTable {
+
+    // 服务提供者Invoker集合，key 为服务提供者的url 计算的key，就是url.toServiceString()方法得到的
     public static ConcurrentHashMap<String, ConcurrentMap<Invoker, ProviderInvokerWrapper>> providerInvokers = new ConcurrentHashMap<>();
+
+    // 服务消费者的Invoker集合，key 为服务消费者的url 计算的key，url.toServiceString()方法得到的
     public static ConcurrentHashMap<String, Set<ConsumerInvokerWrapper>> consumerInvokers = new ConcurrentHashMap<>();
 
     public static <T> ProviderInvokerWrapper<T> registerProvider(Invoker<T> invoker, URL registryUrl, URL providerUrl) {

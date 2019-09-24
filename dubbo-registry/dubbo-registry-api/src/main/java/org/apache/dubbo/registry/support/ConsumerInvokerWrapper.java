@@ -26,11 +26,19 @@ import org.apache.dubbo.rpc.RpcException;
 /**
  * @date 2017/11/23
  */
+//服务消费者的Invoker的包装器
+// 被运用在Dubbo QOS中，需要了解Dubbo QOS的可以到官方文档里面查看:
+// http://dubbo.apache.org/zh-cn/docs/user/references/qos.html
 public class ConsumerInvokerWrapper<T> implements Invoker {
+    // Invoker 对象
     private Invoker<T> invoker;
+    // 原始url
     private URL originUrl;
+    // 注册中心url
     private URL registryUrl;
+    // 消费者url
     private URL consumerUrl;
+    // 注册中心 Directory
     private RegistryDirectory registryDirectory;
 
     public ConsumerInvokerWrapper(Invoker<T> invoker, URL registryUrl, URL consumerUrl, RegistryDirectory registryDirectory) {

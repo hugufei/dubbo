@@ -85,6 +85,15 @@ import static org.apache.dubbo.common.constants.RegistryConstants.ROUTE_PROTOCOL
 
 /**
  * RegistryDirectory
+ *
+ * RegistryDirectory是对dubbo-cluster的依赖集成
+ *
+ * 注册中心服务，维护着所有可用的远程Invoker或者本地的Invoker。
+ *1） 它的Invoker集合是从注册中心获取的， 它实现了NotifyListener接口【实现了回调接口notify方法】。
+ *2） 比如消费方要调用某远程服务，会向注册中心订阅这个服务的所有服务提供方，
+ *3） 订阅时或服务提供方数据有变动时  回调消费方的NotifyListener服务的notify方法，
+ *4） 回调接口传入所有服务的提供方的url地址然后将urls转化为invokers, 也就是refer应用远程服务。
+ *
  */
 public class RegistryDirectory<T> extends AbstractDirectory<T> implements NotifyListener {
 

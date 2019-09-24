@@ -25,5 +25,6 @@ import org.apache.dubbo.common.URL;
  * @see org.apache.dubbo.registry.RegistryFactory#getRegistry(URL)
  * @see org.apache.dubbo.registry.support.AbstractRegistry
  */
+// 注册中心接口
 public interface Registry extends Node, RegistryService {
 }

@@ -23,6 +23,7 @@ package org.apache.dubbo.registry.support;
  *
  * @see FailbackRegistry
  */
+// 该类是一个dubbo单独创建的异常，在FailbackRegistry中被使用到，自定义的是一个跳过失败重试的异常。
 public class SkipFailbackWrapperException extends RuntimeException {
     public SkipFailbackWrapperException(Throwable cause) {
         super(cause);
