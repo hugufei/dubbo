@@ -62,6 +62,8 @@ public class HttpProtocol extends AbstractProxyProtocol {
 
     private final Map<String, HttpServer> serverMap = new ConcurrentHashMap<String, HttpServer>();
 
+    // 缓存的是服务名和InvokeChain代理类
+    // 有请求的时候
     private final Map<String, HttpInvokerServiceExporter> skeletonMap = new ConcurrentHashMap<String, HttpInvokerServiceExporter>();
 
     private HttpBinder httpBinder;
@@ -79,17 +81,23 @@ public class HttpProtocol extends AbstractProxyProtocol {
         return DEFAULT_PORT;
     }
 
+    // type: interface org.apache.dubbo.demo.DemoService
+    // URL: http://172.16.6.72:8080/org.apache.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=org.apache.dubbo.demo.DemoService&bind.ip=172.16.6.72&bind.port=8080&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello&pid=3544&qos-port=22222&register=true&release=&server=tomcat&side=provider&timestamp=1569317220703
     @Override
     protected <T> Runnable doExport(final T impl, Class<T> type, URL url) throws RpcException {
-        String addr = getAddr(url);
+        String addr = getAddr(url); // 0.0.0.0:8080
         HttpServer server = serverMap.get(addr);
         if (server == null) {
+            //启动tomcat并绑定端口，InternalHandler负责处理请求
             server = httpBinder.bind(url, new InternalHandler());
             serverMap.put(addr, server);
         }
+        // /org.apache.dubbo.demo.DemoService
         final String path = url.getAbsolutePath();
+        // 服务名--> InvokeChain代理类
         skeletonMap.put(path, createExporter(impl, type));
 
+        // /org.apache.dubbo.demo.DemoService/generic
         final String genericPath = path + "/" + GENERIC_KEY;
 
         skeletonMap.put(genericPath, createExporter(impl, GenericService.class));
@@ -102,6 +110,7 @@ public class HttpProtocol extends AbstractProxyProtocol {
         };
     }
 
+    // 创建请求处理代理类
     private <T> HttpInvokerServiceExporter createExporter(T impl, Class<?> type) {
         final HttpInvokerServiceExporter httpServiceExporter = new HttpInvokerServiceExporter();
         httpServiceExporter.setServiceInterface(type);

@@ -29,7 +29,7 @@
     <dubbo:registry address="zookeeper://192.168.102.209:2181" />
 
     <!-- use dubbo protocol to export service on port 20880 -->
-    <dubbo:protocol name="dubbo" port="20880"/>
+    <!--<dubbo:protocol name="dubbo" port="20880"/>-->
     <dubbo:protocol name="http" port="8080" server="tomcat"/>
 
     <!-- service implementation, as same as regular local bean -->

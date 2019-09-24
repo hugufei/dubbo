@@ -48,8 +48,7 @@ public class ProtocolFilterWrapper implements Protocol {
         this.protocol = protocol;
     }
 
-
-
+    // 构造调用链
     private static <T> Invoker<T> buildInvokerChain(final Invoker<T> invoker, String key, String group) {
         Invoker<T> last = invoker;
         List<Filter> filters = ExtensionLoader.getExtensionLoader(Filter.class).getActivateExtension(invoker.getUrl(), key, group);
@@ -135,6 +134,7 @@ public class ProtocolFilterWrapper implements Protocol {
         protocol.destroy();
     }
 
+    //
     static class CallbackRegistrationInvoker<T> implements Invoker<T> {
 
         private final Invoker<T> filterInvoker;

@@ -67,6 +67,7 @@ public abstract class AbstractProxyProtocol extends AbstractProtocol {
     @Override
     @SuppressWarnings("unchecked")
     public <T> Exporter<T> export(final Invoker<T> invoker) throws RpcException {
+        // org.apache.dubbo.demo.DemoService:8080
         final String uri = serviceKey(invoker.getUrl());
         Exporter<T> exporter = (Exporter<T>) exporterMap.get(uri);
         if (exporter != null) {
@@ -90,6 +91,8 @@ public abstract class AbstractProxyProtocol extends AbstractProtocol {
                 }
             }
         };
+
+        // org.apache.dubbo.demo.DemoService:8080 --> CallbackRegistrationInvoker的
         exporterMap.put(uri, exporter);
         return exporter;
     }

@@ -45,6 +45,7 @@ import static org.apache.dubbo.rpc.Constants.STUB_EVENT_METHODS_KEY;
 /**
  * StubProxyFactoryWrapper
  */
+// ProxyFactory的切面类
 public class StubProxyFactoryWrapper implements ProxyFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StubProxyFactoryWrapper.class);
@@ -53,10 +54,12 @@ public class StubProxyFactoryWrapper implements ProxyFactory {
 
     private Protocol protocol;
 
+    //构造函数为proxyFactory，在dubbo中这样的类为接口的切面
     public StubProxyFactoryWrapper(ProxyFactory proxyFactory) {
         this.proxyFactory = proxyFactory;
     }
 
+    // set注入
     public void setProtocol(Protocol protocol) {
         this.protocol = protocol;
     }

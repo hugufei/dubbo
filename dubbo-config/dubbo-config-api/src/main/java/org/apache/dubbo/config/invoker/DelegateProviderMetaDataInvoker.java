@@ -26,6 +26,9 @@ import org.apache.dubbo.rpc.RpcException;
 /**
  *
  * A Invoker wrapper that wrap the invoker and all the metadata (ServiceConfig)
+ *
+ * invoker对象的包装类
+ * 附加了ServiceConfig参数
  */
 public class DelegateProviderMetaDataInvoker<T> implements Invoker {
     protected final Invoker<T> invoker;

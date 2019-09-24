@@ -142,6 +142,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
     /**
      * The exported services
      */
+    //所有暴露出去的服务的缓存
     private final List<Exporter<?>> exporters = new ArrayList<Exporter<?>>();
 
     /**
@@ -289,6 +290,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         return unexported;
     }
 
+    // 更新配置
     public void checkAndUpdateSubConfigs() {
         // Use default configs defined explicitly on global configs
         completeCompoundConfigs();
@@ -365,7 +367,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         return getProtocols().size() == 1 && LOCAL_PROTOCOL.equalsIgnoreCase(getProtocols().get(0).getName());
     }
 
+    // 服务导出入口
     public synchronized void export() {
+        //更新配置
         checkAndUpdateSubConfigs();
 
         if (!shouldExport()) {
@@ -375,6 +379,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (shouldDelay()) {
             delayExportExecutor.schedule(this::doExport, getDelay(), TimeUnit.MILLISECONDS);
         } else {
+            //导出
             doExport();
         }
     }
@@ -400,6 +405,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         return (delay == null && provider != null) ? provider.getDelay() : delay;
     }
 
+    // 服务导出
     protected synchronized void doExport() {
         if (unexported) {
             throw new IllegalStateException("The service " + interfaceClass.getName() + " has already unexported!");
@@ -412,6 +418,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (StringUtils.isEmpty(path)) {
             path = interfaceName;
         }
+        // 服务导出
         doExportUrls();
     }
 
@@ -449,7 +456,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
+        // 得到注册中心的URL
         List<URL> registryURLs = loadRegistries(true);
+        // 遍历所有的协议
         for (ProtocolConfig protocolConfig : protocols) {
             String pathKey = URL.buildKey(getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), group, version);
             ProviderModel providerModel = new ProviderModel(pathKey, ref, interfaceClass);
@@ -458,6 +467,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         }
     }
 
+    // 按协议导出
     private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> registryURLs) {
         String name = protocolConfig.getName();
         if (StringUtils.isEmpty(name)) {
@@ -476,6 +486,8 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         appendParameters(map, provider);
         appendParameters(map, protocolConfig);
         appendParameters(map, this);
+
+        // 处理接口的方法，一个接口有多个方法
         if (CollectionUtils.isNotEmpty(methods)) {
             for (MethodConfig method : methods) {
                 appendParameters(map, method, method.getName());
@@ -532,6 +544,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             } // end of methods for
         }
 
+        //继续往map里添加参数： generic|revision|methods|token
         if (ProtocolUtils.isGeneric(generic)) {
             map.put(GENERIC_KEY, generic);
             map.put(METHODS_KEY, ANY_VALUE);
@@ -557,8 +570,14 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             }
         }
         // export service
+        // 服务所在的地址，可以理解为本机ip
         String host = this.findConfigedHosts(protocolConfig, registryURLs, map);
-        Integer port = this.findConfigedPorts(protocolConfig, name, map);
+        // 服务暴露出去的端口
+        Integer port = this.findConfigedPorts(protocolConfig, name, map);//协议端口
+
+        // url的值如下
+        // dubbo://172.16.6.72:20880/org.apache.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=org.apache.dubbo.demo.DemoService&bind.ip=172.16.6.72&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello&pid=1764&qos-port=22222&register=true&release=&side=provider&timestamp=1569309962503
+        // http://172.16.6.72:8080/org.apache.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=org.apache.dubbo.demo.DemoService&bind.ip=172.16.6.72&bind.port=8080&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello&pid=9788&qos-port=22222&register=true&release=&server=tomcat&side=provider&timestamp=1569310227463
         URL url = new URL(name, host, port, getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), map);
 
         if (ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
@@ -572,10 +591,12 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (!SCOPE_NONE.equalsIgnoreCase(scope)) {
 
             // export to local if the config is not remote (export to remote only when config is remote)
+            // 本地导出
             if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
                 exportLocal(url);
             }
             // export to remote if the config is not local (export to local only when config is local)
+            //
             if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) {
                 if (!isOnlyInJvm() && logger.isInfoEnabled()) {
                     logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
@@ -596,14 +617,25 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                         }
 
                         // For providers, this is used to enable custom proxy to generate invoker
+                        // 对于提供者，这用于启用自定义代理来生成调用程序
                         String proxy = url.getParameter(PROXY_KEY);
                         if (StringUtils.isNotEmpty(proxy)) {
                             registryURL = registryURL.addParameter(PROXY_KEY, proxy);
                         }
 
+                        // 构建Invoker对象
+                        // ref就是本地的实现类，如DemoServiceImpl
+                        // interfaceClass就是暴露的接口
+                        // 第三个参数url为registry://192.168.102.209:2181/org.apache.dubbo.registry.RegistryService?application=demo-provider&dubbo=2.0.2&export=dubbo%3A%2F%2F172.16.6.72%3A20880%2Forg.apache.dubbo.demo.DemoService%3Fanyhost%3Dtrue%26application%3Ddemo-provider%26bean.name%3Dorg.apache.dubbo.demo.DemoService%26bind.ip%3D172.16.6.72%26bind.port%3D20880%26deprecated%3Dfalse%26dubbo%3D2.0.2%26dynamic%3Dtrue%26generic%3Dfalse%26interface%3Dorg.apache.dubbo.demo.DemoService%26methods%3DsayHello%26pid%3D7220%26qos-port%3D22222%26register%3Dtrue%26release%3D%26side%3Dprovider%26timestamp%3D1569310496022&pid=7220&qos-port=22222&registry=zookeeper&timestamp=1569310488482
+                        // proxyFactory也是个代理类
+                        // ProxyFactory$Adaptive --> StubProxyFactoryWrapper --> JavassistProxyFactory
+
                         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));
+                        // 包装成DelegateProviderMetaDataInvoker
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 
+                        // 导出协议 - 这里的protocol为Protocol$Adaptive,是个代理类
+                        // Protocol$Adaptive -> ProtocolFilterWrapper -> ProtocolListenerWrapper -> RegistryProtocol
                         Exporter<?> exporter = protocol.export(wrapperInvoker);
                         exporters.add(exporter);
                     }
@@ -631,6 +663,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
     /**
      * always export injvm
      */
+    // 本地导出
     private void exportLocal(URL url) {
         URL local = URLBuilder.from(url)
                 .setProtocol(LOCAL_PROTOCOL)

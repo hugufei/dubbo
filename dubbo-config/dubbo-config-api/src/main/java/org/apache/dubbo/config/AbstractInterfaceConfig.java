@@ -323,10 +323,13 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      * @param provider whether it is the provider side
      * @return
      */
+    // 得到注册中心的URL
+    // registry://192.168.102.209:2181/org.apache.dubbo.registry.RegistryService?application=demo-provider&dubbo=2.0.2&pid=9432&qos-port=22222&registry=zookeeper&timestamp=1569309507759
     protected List<URL> loadRegistries(boolean provider) {
         // check && override if necessary
         List<URL> registryList = new ArrayList<URL>();
         if (CollectionUtils.isNotEmpty(registries)) {
+            //遍历注册中心配置
             for (RegistryConfig config : registries) {
                 String address = config.getAddress();
                 if (StringUtils.isEmpty(address)) {
@@ -342,7 +345,6 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                         map.put(PROTOCOL_KEY, DUBBO_PROTOCOL);
                     }
                     List<URL> urls = UrlUtils.parseURLs(address, map);
-
                     for (URL url : urls) {
                         url = URLBuilder.from(url)
                                 .addParameter(REGISTRY_KEY, url.getProtocol())
