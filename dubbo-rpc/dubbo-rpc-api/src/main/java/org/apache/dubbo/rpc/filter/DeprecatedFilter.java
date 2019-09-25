@@ -37,6 +37,7 @@ import static org.apache.dubbo.rpc.Constants.DEPRECATED_KEY;
  *
  * @see Filter
  */
+// 为调用了废弃的方法时打印错误日志
 @Activate(group = CommonConstants.CONSUMER, value = DEPRECATED_KEY)
 public class DeprecatedFilter implements Filter {
 
@@ -49,17 +50,23 @@ public class DeprecatedFilter implements Filter {
         String key = invoker.getInterface().getName() + "." + invocation.getMethodName();
         if (!logged.contains(key)) {
             logged.add(key);
+            // 如果该服务方法是废弃的，则打印错误日志
             if (invoker.getUrl().getMethodParameter(invocation.getMethodName(), DEPRECATED_KEY, false)) {
                 LOGGER.error("The service method " + invoker.getInterface().getName() + "." + getMethodSignature(invocation) + " is DEPRECATED! Declare from " + invoker.getUrl());
             }
         }
+        // 调用下一个调用链
         return invoker.invoke(invocation);
     }
 
+    // 获得方法定义
     private String getMethodSignature(Invocation invocation) {
+        // 方法名
         StringBuilder buf = new StringBuilder(invocation.getMethodName());
         buf.append("(");
+        // 参数类型
         Class<?>[] types = invocation.getParameterTypes();
+        // 拼接参数
         if (types != null && types.length > 0) {
             boolean first = true;
             for (Class<?> type : types) {

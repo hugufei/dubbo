@@ -21,9 +21,11 @@ package org.apache.dubbo.rpc;
  */
 public abstract class ListenableFilter implements Filter {
 
+    //这个监听器什么时候调用？？？？
     protected Listener listener = null;
 
     public Listener listener() {
         return listener;
     }
+
 }

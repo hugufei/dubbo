@@ -35,6 +35,12 @@ import static org.apache.dubbo.common.constants.CommonConstants.CONSUMER;
  * @see org.apache.dubbo.rpc.Filter
  * @see RpcContext
  */
+// 在当前的RpcContext中记录本地调用的一次状态信息。
+// 1) 先调用后面的调用链
+// 2) 再回来把附加值设置到RpcContext中。
+// 3) 然后返回RpcContext，再清空.
+//
+// 这样是因为后面的调用链中的附加值对前面的调用链是不可见的
 @Activate(group = CONSUMER, order = -10000)
 public class ConsumerContextFilter extends ListenableFilter {
 
@@ -44,17 +50,21 @@ public class ConsumerContextFilter extends ListenableFilter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 设置rpc上下文
         RpcContext.getContext()
                 .setInvoker(invoker)
                 .setInvocation(invocation)
                 .setLocalAddress(NetUtils.getLocalHost(), 0)
                 .setRemoteAddress(invoker.getUrl().getHost(),
                         invoker.getUrl().getPort());
+        // 如果该会话域是rpc会话域
         if (invocation instanceof RpcInvocation) {
+            // 设置实体域
             ((RpcInvocation) invocation).setInvoker(invoker);
         }
         try {
             RpcContext.removeServerContext();
+            // 调用下个调用链
             return invoker.invoke(invocation);
         } finally {
             RpcContext.removeContext();
@@ -64,6 +74,7 @@ public class ConsumerContextFilter extends ListenableFilter {
     static class ConsumerContextListener implements Listener {
         @Override
         public void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation) {
+            // 设置附加值
             RpcContext.getServerContext().setAttachments(appResponse.getAttachments());
         }
 

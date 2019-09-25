@@ -63,24 +63,39 @@ import static org.apache.dubbo.rpc.Constants.ACCESS_LOG_KEY;
  * &lt;/logger&gt;
  * </pre></code>
  */
+
+// 对记录日志的过滤器,调用侧的过滤器 :
+// 它所做的工作就是把引用服务或者暴露服务的调用链信息写入到文件中。
+
+// 1) 先被放入日志集合，
+// 2)然后加入到日志队列，
+// 3)然后被放入到写入文件到任务中
+// 4)最后进入文件。
+
 @Activate(group = PROVIDER, value = ACCESS_LOG_KEY)
 public class AccessLogFilter implements Filter {
 
     private static final Logger logger = LoggerFactory.getLogger(AccessLogFilter.class);
 
+    // 日志访问名称，默认的日志访问名称
     private static final String ACCESS_LOG_KEY = "dubbo.accesslog";
 
+    // 日志队列大小
     private static final int LOG_MAX_BUFFER = 5000;
 
+    // 日志输出的频率
     private static final long LOG_OUTPUT_INTERVAL = 5000;
 
+    // 日期格式
     private static final String FILE_DATE_FORMAT = "yyyyMMdd";
 
     // It's safe to declare it as singleton since it runs on single thread only
     private static final DateFormat FILE_NAME_FORMATTER = new SimpleDateFormat(FILE_DATE_FORMAT);
 
+    // 日志队列 key为访问日志的名称，value为该日志名称对应的日志集合
     private static final Map<String, Set<AccessLogData>> LOG_ENTRIES = new ConcurrentHashMap<String, Set<AccessLogData>>();
 
+    // 日志线程池
     private static final ScheduledExecutorService LOG_SCHEDULED = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Dubbo-Access-Log", true));
 
     /**
@@ -99,20 +114,28 @@ public class AccessLogFilter implements Filter {
      * @return Result from service method.
      * @throws RpcException
      */
+    // 1) 构造日志数据
+    // 2) 把日志加入到集合
+    // 3) 调用下一个调用链
     @Override
     public Result invoke(Invoker<?> invoker, Invocation inv) throws RpcException {
         try {
+            // 获得日志名称
             String accessLogKey = invoker.getUrl().getParameter(ACCESS_LOG_KEY);
             if (ConfigUtils.isNotEmpty(accessLogKey)) {
+                // 构建AccessLogData
                 AccessLogData logData = buildAccessLogData(invoker, inv);
+                // 记录日志
                 log(accessLogKey, logData);
             }
         } catch (Throwable t) {
             logger.warn("Exception in AccessLogFilter of service(" + invoker + " -> " + inv + ")", t);
         }
+        // 调用下一个调用链
         return invoker.invoke(inv);
     }
 
+    // 增加日志信息到日志集合中。
     private void log(String accessLog, AccessLogData accessLogData) {
         Set<AccessLogData> logSet = LOG_ENTRIES.computeIfAbsent(accessLog, k -> new ConcurrentHashSet<>());
 
@@ -124,10 +147,13 @@ public class AccessLogFilter implements Filter {
         }
     }
 
+    // 把日志消息落地到文件
     private void writeLogToFile() {
         if (!LOG_ENTRIES.isEmpty()) {
+            // 遍历日志队列
             for (Map.Entry<String, Set<AccessLogData>> entry : LOG_ENTRIES.entrySet()) {
                 try {
+                    // 获得日志名称
                     String accessLog = entry.getKey();
                     Set<AccessLogData> logSet = entry.getValue();
                     if (ConfigUtils.isDefault(accessLog)) {
@@ -161,12 +187,17 @@ public class AccessLogFilter implements Filter {
         }
     }
 
+    // 构造日志数据
     private AccessLogData buildAccessLogData(Invoker<?> invoker, Invocation inv) {
+        // 获得rpc上下文
         RpcContext context = RpcContext.getContext();
         AccessLogData logData = AccessLogData.newLogData();
+        // 获得调用的接口名称
         logData.setServiceName(invoker.getInterface().getName());
         logData.setMethodName(inv.getMethodName());
+        // 获得版本号
         logData.setVersion(invoker.getUrl().getParameter(VERSION_KEY));
+        // 获得组，是消费者侧还是生产者侧
         logData.setGroup(invoker.getUrl().getParameter(GROUP_KEY));
         logData.setInvocationTime(new Date());
         logData.setTypes(inv.getParameterTypes());

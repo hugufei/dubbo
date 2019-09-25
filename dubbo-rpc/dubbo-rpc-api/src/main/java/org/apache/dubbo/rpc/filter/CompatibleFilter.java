@@ -46,6 +46,7 @@ import static org.apache.dubbo.remoting.Constants.SERIALIZATION_KEY;
  * @see Filter
  *
  */
+// 做数据兼容性的过滤器
 public class CompatibleFilter extends ListenableFilter {
 
     private static Logger logger = LoggerFactory.getLogger(CompatibleFilter.class);
@@ -56,31 +57,41 @@ public class CompatibleFilter extends ListenableFilter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 调用下一个调用链
         return invoker.invoke(invocation);
     }
 
+    // 对于调用链的返回结果，如果返回值类型和返回值不一样的时候，就需要做兼容类型的转化。
+    // 重新把结果放入appResponse，返回。
     static class CompatibleListener implements Listener {
         @Override
         public void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation) {
+            // 如果方法前面没有$或者结果没有异常
             if (!invocation.getMethodName().startsWith("$") && !appResponse.hasException()) {
                 Object value = appResponse.getValue();
                 if (value != null) {
                     try {
+                        // 获得方法
                         Method method = invoker.getInterface().getMethod(invocation.getMethodName(), invocation.getParameterTypes());
+                        // 获得返回的数据类型
                         Class<?> type = method.getReturnType();
                         Object newValue;
+                        // 获取序列化方式的值
                         String serialization = invoker.getUrl().getParameter(SERIALIZATION_KEY);
+                        // 如果是json或者fastjson形式
                         if ("json".equals(serialization) || "fastjson".equals(serialization)) {
-                            // If the serialization key is json or fastjson
+                            // 获得方法的泛型返回值类型
                             Type gtype = method.getGenericReturnType();
+                            // 把数据结果进行类型转化
                             newValue = PojoUtils.realize(value, type, gtype);
-                        } else if (!type.isInstance(value)) {
-                            //if local service interface's method's return type is not instance of return value
+                        } else if (!type.isInstance(value)) { // 如果value不是type类型
+                            // 如果是pojo，则，转化为type类型，如果不是，则进行兼容类型转化。
                             newValue = PojoUtils.isPojo(type) ? PojoUtils.realize(value, type) : CompatibleTypeUtils.compatibleTypeConvert(value, type);
 
                         } else {
                             newValue = value;
                         }
+                        // 重新设置appResponse的result
                         if (newValue != value) {
                             appResponse.setValue(newValue);
                         }

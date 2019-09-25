@@ -36,6 +36,7 @@ public interface TPSLimiter {
      * @param invocation invocation
      * @return true allow the current invocation, otherwise, return false
      */
+    // 是否允许通过
     boolean isAllowable(URL url, Invocation invocation);
 
 }

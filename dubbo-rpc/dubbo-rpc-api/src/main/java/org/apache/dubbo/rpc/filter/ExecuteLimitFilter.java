@@ -37,6 +37,10 @@ import static org.apache.dubbo.rpc.Constants.EXECUTES_KEY;
  * continue the same behaviour un till it is <10.
  *
  */
+// 限制【服务端】最大可并行执行请求数，参数是executes
+// PS:
+// 1) ExecuteLimitFilter是在服务提供侧的限制。
+// 2) ActiveLimitFilter是在消费者侧的限制。
 @Activate(group = CommonConstants.PROVIDER, value = EXECUTES_KEY)
 public class ExecuteLimitFilter extends ListenableFilter {
 
@@ -48,17 +52,20 @@ public class ExecuteLimitFilter extends ListenableFilter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 获得url对象
         URL url = invoker.getUrl();
+        // 方法名称
         String methodName = invocation.getMethodName();
         int max = url.getMethodParameter(methodName, EXECUTES_KEY, 0);
+        // 限流：超过执行限制直接报错【2.6.x版本用的是Semaphore】
         if (!RpcStatus.beginCount(url, methodName, max)) {
             throw new RpcException("Failed to invoke method " + invocation.getMethodName() + " in provider " +
                     url + ", cause: The service using threads greater than <dubbo:service executes=\"" + max +
                     "\" /> limited.");
         }
-
         invocation.setAttachment(EXECUTELIMIT_FILTER_START_TIME, String.valueOf(System.currentTimeMillis()));
         try {
+            // 调用下一个调用链
             return invoker.invoke(invocation);
         } catch (Throwable t) {
             if (t instanceof RuntimeException) {

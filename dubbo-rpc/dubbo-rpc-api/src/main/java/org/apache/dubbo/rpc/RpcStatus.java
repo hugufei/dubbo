@@ -88,6 +88,7 @@ public class RpcStatus {
      * @param methodName
      * @return status
      */
+    // 通过方法名来获得对应的状态
     public static RpcStatus getStatus(URL url, String methodName) {
         String uri = url.toIdentityString();
         ConcurrentMap<String, RpcStatus> map = METHOD_STATISTICS.get(uri);
@@ -120,11 +121,14 @@ public class RpcStatus {
     }
 
     // 开始计数-计数器+1
+    // 如果活跃数量大于等于最大的并发调用数量，则返回false
     public static boolean beginCount(URL url, String methodName, int max) {
         max = (max <= 0) ? Integer.MAX_VALUE : max;
         RpcStatus appStatus = getStatus(url);
         RpcStatus methodStatus = getStatus(url, methodName);
+        // 如果活跃数量大于等于最大的并发调用数量，则返回false
         if (methodStatus.active.incrementAndGet() > max) {
+            //先加1再减1
             methodStatus.active.decrementAndGet();
             return false;
         } else {

@@ -46,12 +46,16 @@ import static org.apache.dubbo.rpc.Constants.GENERIC_KEY;
 
 /**
  * GenericImplInvokerFilter
+ *
+ * 该过滤器也是对于泛化调用的序列化检查和处理，它是消费者侧的过滤器。
  */
+
 @Activate(group = CommonConstants.CONSUMER, value = GENERIC_KEY, order = 20000)
 public class GenericImplFilter extends ListenableFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(GenericImplFilter.class);
 
+    //参数集合
     private static final Class<?>[] GENERIC_PARAMETER_TYPES = new Class<?>[]{String.class, String[].class, Object[].class};
 
     public GenericImplFilter() {
@@ -60,21 +64,28 @@ public class GenericImplFilter extends ListenableFilter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 获得泛化的值
         String generic = invoker.getUrl().getParameter(GENERIC_KEY);
+        // 如果是泛化 ， 并且方法名不是 【$invoke & $invokeAsync】
         if (ProtocolUtils.isGeneric(generic)
                 && (!$INVOKE.equals(invocation.getMethodName()) && !$INVOKE_ASYNC.equals(invocation.getMethodName()))
                 && invocation instanceof RpcInvocation) {
             RpcInvocation invocation2 = new RpcInvocation(invocation);
+            // 获得方法名称
             String methodName = invocation2.getMethodName();
+            // 获得参数类型集合
             Class<?>[] parameterTypes = invocation2.getParameterTypes();
+            // 获得参数集合
             Object[] arguments = invocation2.getArguments();
 
+            // 把参数类型的名称放入集合
             String[] types = new String[parameterTypes.length];
             for (int i = 0; i < parameterTypes.length; i++) {
                 types[i] = ReflectUtils.getName(parameterTypes[i]);
             }
 
             Object[] args;
+            // 对参数集合进行序列化
             if (ProtocolUtils.isBeanGenericSerialization(generic)) {
                 args = new Object[arguments.length];
                 for (int i = 0; i < arguments.length; i++) {
@@ -84,6 +95,7 @@ public class GenericImplFilter extends ListenableFilter {
                 args = PojoUtils.generalize(arguments);
             }
 
+            // 重新把序列化的参数放入
             if (RpcUtils.isReturnTypeFuture(invocation)) {
                 invocation2.setMethodName($INVOKE_ASYNC);
             } else {
@@ -116,6 +128,7 @@ public class GenericImplFilter extends ListenableFilter {
             invocation.setAttachment(
                     GENERIC_KEY, invoker.getUrl().getParameter(GENERIC_KEY));
         }
+        // 调用下一个调用链
         return invoker.invoke(invocation);
     }
 

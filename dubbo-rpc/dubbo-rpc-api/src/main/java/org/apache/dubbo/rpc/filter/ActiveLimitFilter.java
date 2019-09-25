@@ -43,6 +43,10 @@ import static org.apache.dubbo.rpc.Constants.ACTIVES_KEY;
  *
  * @see Filter
  */
+// 限制【消费端】最大可并行执行请求数，参数是actives
+// PS:
+// 1) ExecuteLimitFilter是在服务提供侧的限制。
+// 2) ActiveLimitFilter是在消费者侧的限制。
 @Activate(group = CONSUMER, value = ACTIVES_KEY)
 public class ActiveLimitFilter extends ListenableFilter {
 
@@ -54,15 +58,23 @@ public class ActiveLimitFilter extends ListenableFilter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 获得url对象
         URL url = invoker.getUrl();
+        // 获得方法名称
         String methodName = invocation.getMethodName();
+        // 获得url上的并发调用数（单个服务的单个方法），默认为0
         int max = invoker.getUrl().getMethodParameter(methodName, ACTIVES_KEY, 0);
+        // 通过方法名来获得对应的状态
         RpcStatus rpcStatus = RpcStatus.getStatus(invoker.getUrl(), invocation.getMethodName());
+        // 如果到达最大的调用数量，则进行超时阻塞等待
         if (!RpcStatus.beginCount(url, methodName, max)) {
+            // 获得该方法调用的超时时间
             long timeout = invoker.getUrl().getMethodParameter(invocation.getMethodName(), TIMEOUT_KEY, 0);
+            // 获得系统时间
             long start = System.currentTimeMillis();
             long remain = timeout;
             synchronized (rpcStatus) {
+                //  如果活跃数量大于等于最大的并发调用数量,则阻塞等待
                 while (!RpcStatus.beginCount(url, methodName, max)) {
                     try {
                         rpcStatus.wait(remain);
@@ -71,6 +83,7 @@ public class ActiveLimitFilter extends ListenableFilter {
                     }
                     long elapsed = System.currentTimeMillis() - start;
                     remain = timeout - elapsed;
+                    // 超时报错
                     if (remain <= 0) {
                         throw new RpcException("Waiting concurrent invoke timeout in client-side for service:  " + invoker.getInterface().getName() + ", method: " + invocation.getMethodName() + ", elapsed: " + elapsed + ", timeout: " + timeout + ". concurrent invokes: " + rpcStatus.getActive() + ". max concurrent invoke limit: " + max);
                     }
@@ -80,17 +93,20 @@ public class ActiveLimitFilter extends ListenableFilter {
 
         invocation.setAttachment(ACTIVELIMIT_FILTER_START_TIME, String.valueOf(System.currentTimeMillis()));
 
+        // 调用后面的调用链，如果没有抛出异常，则算成功
         return invoker.invoke(invocation);
     }
 
+    // 限流监听器，成功或失败的时候回调
     static class ActiveLimitListener implements Listener {
         @Override
         public void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation) {
             String methodName = invocation.getMethodName();
             URL url = invoker.getUrl();
             int max = invoker.getUrl().getMethodParameter(methodName, ACTIVES_KEY, 0);
-
+            // 结束计数，记录时间
             RpcStatus.endCount(url, methodName, getElapsed(invocation), true);
+            // 提前唤醒在rpcStatus上等待的其他线程
             notifyFinish(RpcStatus.getStatus(url, methodName), max);
         }
 
@@ -99,8 +115,9 @@ public class ActiveLimitFilter extends ListenableFilter {
             String methodName = invocation.getMethodName();
             URL url = invoker.getUrl();
             int max = invoker.getUrl().getMethodParameter(methodName, ACTIVES_KEY, 0);
-
+            // 结束计数，记录时间
             RpcStatus.endCount(url, methodName, getElapsed(invocation), false);
+            // 提前唤醒在rpcStatus上等待的其他线程
             notifyFinish(RpcStatus.getStatus(url, methodName), max);
         }
 
