@@ -34,6 +34,9 @@ import java.util.concurrent.CompletionException;
 
 /**
  * InvokerWrapper
+ *
+ * 是代理invoker对象的抽象类。
+ *
  */
 public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
     Logger logger = LoggerFactory.getLogger(AbstractProxyInvoker.class);
@@ -81,7 +84,9 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         try {
+            // 调用了抽象方法doInvoke
             Object value = doInvoke(proxy, invocation.getMethodName(), invocation.getParameterTypes(), invocation.getArguments());
+            // 包装为异步任务
             CompletableFuture<Object> future = wrapWithFuture(value, invocation);
             AsyncRpcResult asyncRpcResult = new AsyncRpcResult(invocation);
             future.whenComplete((obj, t) -> {
@@ -117,6 +122,7 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
         return CompletableFuture.completedFuture(value);
     }
 
+    // 该方法被子类实现
     protected abstract Object doInvoke(T proxy, String methodName, Class<?>[] parameterTypes, Object[] arguments) throws Throwable;
 
     @Override
