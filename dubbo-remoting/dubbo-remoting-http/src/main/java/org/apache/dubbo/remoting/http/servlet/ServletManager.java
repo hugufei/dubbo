@@ -23,19 +23,25 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * TODO this may not be a pretty elegant solution,
  *
+ * port到ServletContext的映射管理器
+ *
  */
 public class ServletManager {
 
+    // 外部服务器端口，用于 `servlet` 的服务器端口
     public static final int EXTERNAL_SERVER_PORT = -1234;
 
+    // 单例
     private static final ServletManager INSTANCE = new ServletManager();
 
+    // ServletContext 集合: port->ServletContext
     private final Map<Integer, ServletContext> contextMap = new ConcurrentHashMap<Integer, ServletContext>();
 
     public static ServletManager getInstance() {
         return INSTANCE;
     }
 
+    //添加ServletContext
     public void addServletContext(int port, ServletContext servletContext) {
         contextMap.put(port, servletContext);
     }
@@ -44,6 +50,7 @@ public class ServletManager {
         contextMap.remove(port);
     }
 
+    //获得ServletContext对象
     public ServletContext getServletContext(int port) {
         return contextMap.get(port);
     }

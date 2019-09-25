@@ -23,6 +23,8 @@ import java.io.IOException;
 
 /**
  * http invocation handler.
+ *
+ * HTTP 处理器接口
  */
 public interface HttpHandler {
 
@@ -34,6 +36,7 @@ public interface HttpHandler {
      * @throws IOException
      * @throws ServletException
      */
+    // 定义了一个处理请求的方法
     void handle(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException;
 
 }

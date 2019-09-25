@@ -27,9 +27,11 @@ import org.apache.dubbo.remoting.http.HttpServer;
  */
 public class ServletHttpBinder implements HttpBinder {
 
+    //用到了dubbo SPI机制
     @Override
     @Adaptive()
     public HttpServer bind(URL url, HttpHandler handler) {
+        // 创建ServletHttpServer对象
         return new ServletHttpServer(url, handler);
     }
 

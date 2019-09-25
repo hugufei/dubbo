@@ -21,6 +21,7 @@ import org.apache.dubbo.common.URL;
 
 import java.net.InetSocketAddress;
 
+//http服务器的接口
 public interface HttpServer extends Resetable {
 
     /**
@@ -28,6 +29,7 @@ public interface HttpServer extends Resetable {
      *
      * @return http handler.
      */
+    // http的处理类
     HttpHandler getHttpHandler();
 
     /**
@@ -42,16 +44,19 @@ public interface HttpServer extends Resetable {
      *
      * @return local address.
      */
+    // 获得本地服务器地址
     InetSocketAddress getLocalAddress();
 
     /**
      * close the channel.
      */
+    // 关闭通道
     void close();
 
     /**
      * Graceful close the channel.
      */
+    // 优雅的关闭通道
     void close(int timeout);
 
     /**
@@ -59,6 +64,7 @@ public interface HttpServer extends Resetable {
      *
      * @return bound
      */
+    // 是否绑定
     boolean isBound();
 
     /**
@@ -66,6 +72,7 @@ public interface HttpServer extends Resetable {
      *
      * @return closed
      */
+    // 服务器是否关闭
     boolean isClosed();
 
 }

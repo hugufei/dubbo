@@ -23,6 +23,7 @@ import org.apache.dubbo.remoting.Constants;
 
 /**
  * HttpBinder
+ *
  */
 @SPI("jetty")
 public interface HttpBinder {
