@@ -26,10 +26,12 @@ import java.util.List;
  * @see org.apache.dubbo.registry.RegistryService#subscribe(URL, NotifyListener)
  */
 // 通知监听器。当收到服务变更通知时触发
+// 重点关注实现类RegistryDirectory
 public interface NotifyListener {
 
     /**
-     * 当收到服务变更通知时触发。
+     * 当收到服务变更通知时触发：
+     * 一般是注册中心数据发生改变，进而更新本地数据
      *
      * 通知需处理契约：<br>
      * 1. 总是以服务接口和数据类型为维度全量通知，即不会通知一个服务的同类型的部分数据，用户不需要对比上一次通知结果。<br>
