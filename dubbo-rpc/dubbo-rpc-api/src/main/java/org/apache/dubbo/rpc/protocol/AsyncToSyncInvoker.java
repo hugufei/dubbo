@@ -31,6 +31,8 @@ import java.util.concurrent.ExecutionException;
 /**
  * This class will work as a wrapper wrapping outside of each protocol invoker.
  * @param <T>
+ *
+ *  异步转同步的invoker类
  */
 public class AsyncToSyncInvoker<T> implements Invoker<T> {
 

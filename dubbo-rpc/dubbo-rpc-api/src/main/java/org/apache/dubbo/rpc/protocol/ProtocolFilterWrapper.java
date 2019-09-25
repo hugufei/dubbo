@@ -36,11 +36,17 @@ import static org.apache.dubbo.rpc.Constants.SERVICE_FILTER_KEY;
 
 /**
  * ListenerProtocol
+ *
+ * 该类实现了Protocol接口，其中也用到了装饰模式，是对Protocol的装饰，
+ *
+ * 是在服务引用和暴露的方法上加上了过滤器功能。
+ *
  */
 public class ProtocolFilterWrapper implements Protocol {
 
     private final Protocol protocol;
 
+    // Protocol 的filter功能的 AOP
     public ProtocolFilterWrapper(Protocol protocol) {
         if (protocol == null) {
             throw new IllegalArgumentException("protocol == null");
@@ -48,15 +54,20 @@ public class ProtocolFilterWrapper implements Protocol {
         this.protocol = protocol;
     }
 
-    // 构造调用链
+    // 该方法就是创建带 Filter 链的 Invoker 对象。倒序的把每一个过滤器串连起来，形成一个invoker。
     private static <T> Invoker<T> buildInvokerChain(final Invoker<T> invoker, String key, String group) {
+        // 原来的invoker独享
         Invoker<T> last = invoker;
+
+        // 获得过滤器的所有扩展实现类实例集合
         List<Filter> filters = ExtensionLoader.getExtensionLoader(Filter.class).getActivateExtension(invoker.getUrl(), key, group);
 
         if (!filters.isEmpty()) {
+            // 从最后一个过滤器开始循环，创建一个带有过滤器链的invoker对象
             for (int i = filters.size() - 1; i >= 0; i--) {
                 final Filter filter = filters.get(i);
                 final Invoker<T> next = last;
+                // 生成一个新的带有filter功能的Invoker
                 last = new Invoker<T>() {
 
                     @Override
@@ -74,6 +85,7 @@ public class ProtocolFilterWrapper implements Protocol {
                         return invoker.isAvailable();
                     }
 
+                    //  关键在这里，调用下一个filter代表的invoker，把每一个过滤器串起来
                     @Override
                     public Result invoke(Invocation invocation) throws RpcException {
                         Result asyncResult;
@@ -115,17 +127,24 @@ public class ProtocolFilterWrapper implements Protocol {
 
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
+        // 如果是注册中心，则直接暴露服务
         if (REGISTRY_PROTOCOL.equals(invoker.getUrl().getProtocol())) {
             return protocol.export(invoker);
         }
+        // 服务提供侧 暴露服务,注意buildInvokerChain返回的是CallbackRegistrationInvoker对象
+        // 在服务暴露上做了过滤器链的增强，也就是加上了过滤器。
         return protocol.export(buildInvokerChain(invoker, SERVICE_FILTER_KEY, CommonConstants.PROVIDER));
     }
 
     @Override
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
+        // 如果是注册中心，则直接引用
         if (REGISTRY_PROTOCOL.equals(url.getProtocol())) {
             return protocol.refer(type, url);
         }
+        // 消费者侧引用服务
+        // 在服务引用上做了过滤器链的增强，也就是加上了过滤器。
+        // 参数为reference.filter ， consumer
         return buildInvokerChain(protocol.refer(type, url), REFERENCE_FILTER_KEY, CommonConstants.CONSUMER);
     }
 
@@ -134,7 +153,7 @@ public class ProtocolFilterWrapper implements Protocol {
         protocol.destroy();
     }
 
-    //
+    // 带有 过滤器链 的 Invoker
     static class CallbackRegistrationInvoker<T> implements Invoker<T> {
 
         private final Invoker<T> filterInvoker;

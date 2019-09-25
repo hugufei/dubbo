@@ -23,13 +23,17 @@ import org.apache.dubbo.rpc.Invoker;
 
 /**
  * AbstractExporter.
+ *
+ * 在服务暴露中实现了一些公共方法。
  */
 public abstract class AbstractExporter<T> implements Exporter<T> {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    // invoker对象
     private final Invoker<T> invoker;
 
+    // 是否取消暴露服务
     private volatile boolean unexported = false;
 
     public AbstractExporter(Invoker<T> invoker) {
@@ -52,10 +56,12 @@ public abstract class AbstractExporter<T> implements Exporter<T> {
 
     @Override
     public void unexport() {
+        // 如果已经消取消暴露，则之间返回
         if (unexported) {
             return;
         }
         unexported = true;
+        // 销毁invoker
         getInvoker().destroy();
     }
 
