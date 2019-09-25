@@ -40,38 +40,54 @@ import static org.apache.dubbo.registry.Constants.REGISTRY_RECONNECT_PERIOD_KEY;
 
 /**
  * DubboRegistry
+ *
+ * 该类继承了FailbackRegistry类，该类里面封装了一个重连机制
+ *
+ * PS: dubbo推荐使用zookeeper
+ *
  */
 public class DubboRegistry extends FailbackRegistry {
 
     private final static Logger logger = LoggerFactory.getLogger(DubboRegistry.class);
 
     // Reconnecting detection cycle: 3 seconds (unit:millisecond)
+    // 重新连接周期：3秒
     private static final int RECONNECT_PERIOD_DEFAULT = 3 * 1000;
 
     // Scheduled executor service
+    // 任务调度器
     private final ScheduledExecutorService reconnectTimer = Executors.newScheduledThreadPool(1, new NamedThreadFactory("DubboRegistryReconnectTimer", true));
 
     // Reconnection timer, regular check connection is available. If unavailable, unlimited reconnection.
+    // 重新连接执行器，定期检查连接可用，如果不可用，则无限制重连
     private final ScheduledFuture<?> reconnectFuture;
 
     // The lock for client acquisition process, lock the creation process of the client instance to prevent repeated clients
+    // 客户端的锁，保证客户端的原子性，可见行，线程安全
     private final ReentrantLock clientLock = new ReentrantLock();
 
+    // 注册中心Invoker
     private final Invoker<RegistryService> registryInvoker;
 
+    // 注册中心服务对象
     private final RegistryService registryService;
 
     /**
      * The time in milliseconds the reconnectTimer will wait
      */
+    // 任务调度器reconnectTimer将等待的时间
     private final int reconnectPeriod;
 
+
     public DubboRegistry(Invoker<RegistryService> registryInvoker, RegistryService registryService) {
+        // 调用父类FailbackRegistry的构造函数
         super(registryInvoker.getUrl());
         this.registryInvoker = registryInvoker;
         this.registryService = registryService;
         // Start reconnection timer
+        // 优先取url中key为reconnect.perio的配置，如果没有，则使用默认的3s
         this.reconnectPeriod = registryInvoker.getUrl().getParameter(REGISTRY_RECONNECT_PERIOD_KEY, RECONNECT_PERIOD_DEFAULT);
+        // 每reconnectPeriod秒去连接，首次连接也延迟reconnectPeriod秒
         reconnectFuture = reconnectTimer.scheduleWithFixedDelay(() -> {
             // Check and connect to the registry
             try {
@@ -82,21 +98,26 @@ public class DubboRegistry extends FailbackRegistry {
         }, reconnectPeriod, reconnectPeriod, TimeUnit.MILLISECONDS);
     }
 
+    // 连接注册中心的实现
     protected final void connect() {
         try {
             // Check whether or not it is connected
+            // 检查注册中心是否已连接
             if (isAvailable()) {
                 return;
             }
             if (logger.isInfoEnabled()) {
                 logger.info("Reconnect to registry " + getUrl());
             }
+            // 获得客户端锁
             clientLock.lock();
             try {
                 // Double check whether or not it is connected
+                // 二次查询注册中心是否已经连接
                 if (isAvailable()) {
                     return;
                 }
+                // 恢复注册和订阅
                 recover();
             } finally {
                 clientLock.unlock();
@@ -112,6 +133,7 @@ public class DubboRegistry extends FailbackRegistry {
         }
     }
 
+    // 检查注册中心是否连接
     @Override
     public boolean isAvailable() {
         if (registryInvoker == null) {
@@ -120,16 +142,20 @@ public class DubboRegistry extends FailbackRegistry {
         return registryInvoker.isAvailable();
     }
 
+    // 销毁重连计时器、注册中心的Invoker和任务调度器
     @Override
     public void destroy() {
         super.destroy();
         try {
             // Cancel the reconnection timer
+            // 取消重新连接计时器
             ExecutorUtil.cancelScheduledFuture(reconnectFuture);
         } catch (Throwable t) {
             logger.warn("Failed to cancel reconnect timer", t);
         }
+        // 销毁注册中心的Invoker
         registryInvoker.destroy();
+        // 关闭任务调度器
         ExecutorUtil.gracefulShutdown(reconnectTimer, reconnectPeriod);
     }
 

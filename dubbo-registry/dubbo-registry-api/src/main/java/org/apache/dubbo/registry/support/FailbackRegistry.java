@@ -49,6 +49,7 @@ import static org.apache.dubbo.registry.Constants.REGISTRY_RETRY_PERIOD_KEY;
 // AbstractRegistry中的注册订阅等方法，实际上就是一些内存缓存的变化，
 // 而真正的注册订阅的实现逻辑在FailbackRegistry实现，
 // 并且FailbackRegistry提供了失败重试的机制。
+// 注册中心核心功能： 注册、订阅、取消注册、取消订阅，查询注册列表
 public abstract class FailbackRegistry extends AbstractRegistry {
 
     /*  retry task map */
@@ -119,6 +120,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         oldOne = failedRegistered.putIfAbsent(url, newTask);
         if (oldOne == null) {
             // never has a retry task. then start a new task for retry.
+            // 启动一个新任务重试
             retryTimer.newTimeout(newTask, retryPeriod, TimeUnit.MILLISECONDS);
         }
     }
@@ -395,6 +397,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         super.notify(url, listener, urls);
     }
 
+    // 恢复注册和订阅
     @Override
     protected void recover() throws Exception {
         // register
