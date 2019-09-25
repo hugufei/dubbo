@@ -21,6 +21,16 @@ import org.apache.dubbo.common.Node;
 /**
  * Invoker. (API/SPI, Prototype, ThreadSafe)
  *
+ * 它代表了一个可执行体，可以向它发起invoke调用。
+ *
+ * 是dubbo的核心模型，其他模型都向它靠拢，或者转化成它，
+ *
+ * 1) 这个有可能是一个本地的实现，
+ * 2) 也可能是一个远程的实现，
+ * 3) 也可能是一个集群的实现。
+ *
+ * 它代表了一次调用
+ *
  * @see org.apache.dubbo.rpc.Protocol#refer(Class, org.apache.dubbo.common.URL)
  * @see org.apache.dubbo.rpc.InvokerListener
  * @see org.apache.dubbo.rpc.protocol.AbstractInvoker
@@ -28,20 +38,10 @@ import org.apache.dubbo.common.Node;
 // Invoker
 public interface Invoker<T> extends Node {
 
-    /**
-     * get service interface.
-     *
-     * @return service interface.
-     */
+    //获得服务接口
     Class<T> getInterface();
 
-    /**
-     * invoke.
-     *
-     * @param invocation
-     * @return result
-     * @throws RpcException
-     */
+    //调用
     Result invoke(Invocation invocation) throws RpcException;
 
 }

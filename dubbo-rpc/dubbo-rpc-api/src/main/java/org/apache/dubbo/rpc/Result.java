@@ -38,6 +38,7 @@ import java.util.function.Function;
  * @see org.apache.dubbo.rpc.Invoker#invoke(Invocation)
  * @see AppResponse
  */
+// 实体域执行invoke的结果接口，里面定义了获得结果异常以及附加值等方法
 public interface Result extends CompletionStage<Result>, Future<Result>, Serializable {
 
     /**

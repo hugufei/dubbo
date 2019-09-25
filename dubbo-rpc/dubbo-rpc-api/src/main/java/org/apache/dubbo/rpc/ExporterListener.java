@@ -20,26 +20,16 @@ import org.apache.dubbo.common.extension.SPI;
 
 /**
  * ExporterListener. (SPI, Singleton, ThreadSafe)
+ *
+ * 服务暴露的监听器接口，定义了两个方法是暴露和取消暴露，参数都是Exporter类型的。
  */
 @SPI
 public interface ExporterListener {
 
-    /**
-     * The exporter exported.
-     *
-     * @param exporter
-     * @throws RpcException
-     * @see org.apache.dubbo.rpc.Protocol#export(Invoker)
-     */
+    //监听 - 暴露服务
     void exported(Exporter<?> exporter) throws RpcException;
 
-    /**
-     * The exporter unexported.
-     *
-     * @param exporter
-     * @throws RpcException
-     * @see org.apache.dubbo.rpc.Exporter#unexport()
-     */
+    //监听 - 取消暴露
     void unexported(Exporter<?> exporter);
 
 }

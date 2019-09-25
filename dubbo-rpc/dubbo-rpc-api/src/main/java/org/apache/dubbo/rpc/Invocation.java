@@ -25,66 +25,34 @@ import java.util.Map;
  * @see org.apache.dubbo.rpc.Invoker#invoke(Invocation)
  * @see org.apache.dubbo.rpc.RpcInvocation
  */
+//调用对象，它持有调用过程中的变量，比如方法名，参数等。
 public interface Invocation {
 
-    /**
-     * get method name.
-     *
-     * @return method name.
-     * @serial
-     */
+    //获得方法名称
     String getMethodName();
 
-    /**
-     * get parameter types.
-     *
-     * @return parameter types.
-     * @serial
-     */
+    //获得参数类型
     Class<?>[] getParameterTypes();
 
-    /**
-     * get arguments.
-     *
-     * @return arguments.
-     * @serial
-     */
+    //获得参数
     Object[] getArguments();
 
-    /**
-     * get attachments.
-     *
-     * @return attachments.
-     * @serial
-     */
+    //获得附加值集合
     Map<String, String> getAttachments();
 
+    // 设置附加值
     void setAttachment(String key, String value);
 
+    // 设置附加值
     void setAttachmentIfAbsent(String key, String value);
 
-    /**
-     * get attachment by key.
-     *
-     * @return attachment value.
-     * @serial
-     */
+    // 获得附加值
     String getAttachment(String key);
 
-    /**
-     * get attachment by key with default value.
-     *
-     * @return attachment value.
-     * @serial
-     */
+    // 获得附加值
     String getAttachment(String key, String defaultValue);
 
-    /**
-     * get the invoker in current context.
-     *
-     * @return invoker.
-     * @transient
-     */
+    // 获得当前上下文的invoker
     Invoker<?> getInvoker();
 
 }

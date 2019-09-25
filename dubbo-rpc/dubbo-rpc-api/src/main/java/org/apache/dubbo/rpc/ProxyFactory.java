@@ -24,6 +24,10 @@ import static org.apache.dubbo.rpc.Constants.PROXY_KEY;
 
 /**
  * ProxyFactory. (API/SPI, Singleton, ThreadSafe)
+ *
+ * 1） 代理工厂接口，它也是个可扩展接口，默认实现javassist。
+ * 2） dubbo提供两种动态代理方法分别是javassist/jdk，
+ * 3） 该接口定义了三个方法，前两个方法是通过invoker创建代理，最后一个是通过代理来获得invoker。
  */
 @SPI("javassist")
 public interface ProxyFactory {
@@ -34,6 +38,7 @@ public interface ProxyFactory {
      * @param invoker
      * @return proxy
      */
+    // 通过invoker创建代理
     @Adaptive({PROXY_KEY})
     <T> T getProxy(Invoker<T> invoker) throws RpcException;
 
@@ -43,6 +48,7 @@ public interface ProxyFactory {
      * @param invoker
      * @return proxy
      */
+    // 通过invoker创建代理
     @Adaptive({PROXY_KEY})
     <T> T getProxy(Invoker<T> invoker, boolean generic) throws RpcException;
 
@@ -55,6 +61,7 @@ public interface ProxyFactory {
      * @param url
      * @return invoker
      */
+    // 通过代理来获得invoker
     @Adaptive({PROXY_KEY})
     <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) throws RpcException;
 

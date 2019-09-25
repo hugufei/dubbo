@@ -40,11 +40,15 @@ import org.apache.dubbo.common.extension.SPI;
  * @see org.apache.dubbo.rpc.filter.TokenFilter
  * @see org.apache.dubbo.rpc.filter.TpsLimitFilter
  */
+
+//invoker调用时过滤器接口，其中就只有一个invoke方法。在该方法中对调用进行过滤
+
 @SPI
 public interface Filter {
     /**
      * Does not need to override/implement this method.
      */
+    // 对调用进行过滤
     Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException;
 
     /**

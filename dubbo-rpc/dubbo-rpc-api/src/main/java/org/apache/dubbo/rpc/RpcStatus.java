@@ -30,19 +30,32 @@ import java.util.concurrent.atomic.AtomicLong;
  * @see org.apache.dubbo.rpc.filter.ExecuteLimitFilter
  * @see org.apache.dubbo.rpc.cluster.loadbalance.LeastActiveLoadBalance
  */
+// 是rpc的一些状态监控，其中封装了许多的计数器，用来记录rpc调用的状态。
 public class RpcStatus {
 
+    //uri对应的状态集合，key为uri，value为RpcStatus对象
     private static final ConcurrentMap<String, RpcStatus> SERVICE_STATISTICS = new ConcurrentHashMap<String, RpcStatus>();
 
+    //method对应的状态集合，key是uri，第二个key是方法名methodName
     private static final ConcurrentMap<String, ConcurrentMap<String, RpcStatus>> METHOD_STATISTICS = new ConcurrentHashMap<String, ConcurrentMap<String, RpcStatus>>();
+
     private final ConcurrentMap<String, Object> values = new ConcurrentHashMap<String, Object>();
+
+    // 活跃状态
     private final AtomicInteger active = new AtomicInteger();
+    // 总得数量
     private final AtomicLong total = new AtomicLong();
+    // 失败数量
     private final AtomicInteger failed = new AtomicInteger();
+    // 总调用时长
     private final AtomicLong totalElapsed = new AtomicLong();
+    // 总调用失败时长
     private final AtomicLong failedElapsed = new AtomicLong();
+    // 最大调用时长
     private final AtomicLong maxElapsed = new AtomicLong();
+    // 最大调用失败时长
     private final AtomicLong failedMaxElapsed = new AtomicLong();
+    // 最大调用成功时长
     private final AtomicLong succeededMaxElapsed = new AtomicLong();
 
     private RpcStatus() {
@@ -101,13 +114,12 @@ public class RpcStatus {
         }
     }
 
+    //开始计数-计数器+1
     public static void beginCount(URL url, String methodName) {
         beginCount(url, methodName, Integer.MAX_VALUE);
     }
 
-    /**
-     * @param url
-     */
+    // 开始计数-计数器+1
     public static boolean beginCount(URL url, String methodName, int max) {
         max = (max <= 0) ? Integer.MAX_VALUE : max;
         RpcStatus appStatus = getStatus(url);
@@ -121,16 +133,13 @@ public class RpcStatus {
         }
     }
 
-    /**
-     * @param url
-     * @param elapsed
-     * @param succeeded
-     */
+    // 计数器减少
     public static void endCount(URL url, String methodName, long elapsed, boolean succeeded) {
         endCount(getStatus(url), elapsed, succeeded);
         endCount(getStatus(url, methodName), elapsed, succeeded);
     }
 
+    // 计数器减少
     private static void endCount(RpcStatus status, long elapsed, boolean succeeded) {
         status.active.decrementAndGet();
         status.total.incrementAndGet();
