@@ -54,6 +54,8 @@ public interface Filter {
     /**
      * Filter itself should only be response for passing invocation, all callbacks has been placed into {@link Listener}
      *
+     * 过滤器本身仅应作为传递调用的响应，所有回调均已放入{@link Listener}
+     *
      * @param appResponse
      * @param invoker
      * @param invocation
@@ -64,6 +66,7 @@ public interface Filter {
         return appResponse;
     }
 
+    // 过滤器的回调方法
     interface Listener {
 
         void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation);
