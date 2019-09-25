@@ -358,7 +358,9 @@ public class NetUtils {
 
     public static void joinMulticastGroup(MulticastSocket multicastSocket, InetAddress multicastAddress) throws IOException {
         setInterface(multicastSocket, multicastAddress instanceof Inet6Address);
+        // 禁用多播数据报的本地环回
         multicastSocket.setLoopbackMode(false);
+        // 加入同一组广播
         multicastSocket.joinGroup(multicastAddress);
     }
 

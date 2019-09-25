@@ -73,6 +73,7 @@ public class MulticastGroup extends AbstractGroup {
         }
     }
 
+    // 判断是否为多点广播地址，地址范围是224.0.0.0至239.255.255.255。
     private static boolean isMulticastAddress(String ip) {
         int i = ip.indexOf('.');
         if (i > 0) {
