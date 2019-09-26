@@ -98,6 +98,14 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
      * Actually，when the {@link ExtensionLoader} init the {@link Protocol} instants,it will automatically wraps two
      * layers, and eventually will get a <b>ProtocolFilterWrapper</b> or <b>ProtocolListenerWrapper</b>
      */
+
+    // 具有自适应功能的Protocol实现，在不同情况下会有所不同。
+    // 具体的Protocol实现由URL中的协议属性决定。
+    // 例如：
+    // 1) 当URL为Registry://224.5.6.7：1234/org.apache.dubbo.registry.RegistryService?application = dubbo-sample时，*则协议为 RegistryProtocol
+    // 2) 当URL为dubbo://224.5.6.7：1234/org.apache.dubbo.config.api.DemoService?application = dubbo-sample时，则协议为 DubboProtocol
+    //
+    // 实际上，当ExtensionLoader初始化Protocol实例时，它将自动包装两层，最终会得到一个ProtocolFilterWrapper或ProtocolListenerWrapper
     private static final Protocol REF_PROTOCOL = ExtensionLoader.getExtensionLoader(Protocol.class).getAdaptiveExtension();
 
     /**
@@ -110,6 +118,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
      * A {@link ProxyFactory} implementation that will generate a reference service's proxy,the JavassistProxyFactory is
      * its default implementation
      */
+    // 用来生成服务的代理，默认实现-JavassistProxyFactory
     private static final ProxyFactory PROXY_FACTORY = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
 
     /**
@@ -240,6 +249,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         checkMetadataReport();
     }
 
+    //服务引入入口
     public synchronized T get() {
         checkAndUpdateSubConfigs();
 

@@ -200,52 +200,63 @@ public class RegistryProtocol implements Protocol {
         registry.unregister(registeredProviderUrl);
     }
 
-    //服务导出
+    // 服务导出整体逻辑：
+    // 1、获得服务提供者的url，再通过override数据重新配置url
+    // 2、执行doLocalExport()进行服务暴露。
+    // 3、加载注册中心实现类，向注册中心注册服务。
+    // 4、向注册中心进行订阅 override 数据。
+    // 5、创建并返回 DestroyableExporter
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
-        // 获取注册中心URL： zookeeper://192.168.102.209:2181/org.apache.dubbo.registry.RegistryService?application=demo-provider&dubbo=2.0.2&export=dubbo%3A%2F%2F172.16.6.72%3A20880%2Forg.apache.dubbo.demo.DemoService%3Fanyhost%3Dtrue%26application%3Ddemo-provider%26bean.name%3Dorg.apache.dubbo.demo.DemoService%26bind.ip%3D172.16.6.72%26bind.port%3D20880%26deprecated%3Dfalse%26dubbo%3D2.0.2%26dynamic%3Dtrue%26generic%3Dfalse%26interface%3Dorg.apache.dubbo.demo.DemoService%26methods%3DsayHello%26pid%3D10000%26qos-port%3D22222%26register%3Dtrue%26release%3D%26side%3Dprovider%26timestamp%3D1569312348547&pid=10000&qos-port=22222&timestamp=1569312346447
+
+        // 注册中心URL： zookeeper://192.168.102.209:2181/org.apache.dubbo.registry.RegistryService?application=demo-provider&dubbo=2.0.2&export=dubbo%3A%2F%2F172.16.6.72%3A20880%2Forg.apache.dubbo.demo.DemoService%3Fanyhost%3Dtrue%26application%3Ddemo-provider%26bean.name%3Dorg.apache.dubbo.demo.DemoService%26bind.ip%3D172.16.6.72%26bind.port%3D20880%26deprecated%3Dfalse%26dubbo%3D2.0.2%26dynamic%3Dtrue%26generic%3Dfalse%26interface%3Dorg.apache.dubbo.demo.DemoService%26methods%3DsayHello%26pid%3D10000%26qos-port%3D22222%26register%3Dtrue%26release%3D%26side%3Dprovider%26timestamp%3D1569312348547&pid=10000&qos-port=22222&timestamp=1569312346447
         URL registryUrl = getRegistryUrl(originInvoker);
-        // url to export locally
-        // 获取注册的url：dubbo://172.16.6.72:20880/org.apache.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=org.apache.dubbo.demo.DemoService&bind.ip=172.16.6.72&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello&pid=10000&qos-port=22222&register=true&release=&side=provider&timestamp=1569312348547
+
+        // ——————————————————————————1 获取本地暴露的url,并使用override配置更新url——————————————————————————————————————
+        // 1.1) 获取本地暴露的url
+        // dubbo://172.16.6.72:20880/org.apache.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=org.apache.dubbo.demo.DemoService&bind.ip=172.16.6.72&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello&pid=10000&qos-port=22222&register=true&release=&side=provider&timestamp=1569312348547
         URL providerUrl = getProviderUrl(originInvoker);
 
-        // Subscribe the override data
-        // FIXME When the provider subscribes, it will affect the scene : a certain JVM exposes the service and call
-        //  the same service. Because the subscribed is cached key with the name of the service, it causes the
-        //  subscription information to cover.
-
-        //provider://172.16.6.72:20880/org.apache.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=org.apache.dubbo.demo.DemoService&bind.ip=172.16.6.72&bind.port=20880&category=configurators&check=false&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello&pid=10000&qos-port=22222&register=true&release=&side=provider&timestamp=1569312348547
+        // 1.2) 获取override订阅URL，创建override的监听器
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(providerUrl);
-
-        // 1、绑定监听器
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
-        // 2、获取providerUrl：dubbo://172.16.6.72:20880/org.apache.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=org.apache.dubbo.demo.DemoService&bind.ip=172.16.6.72&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello&pid=9440&qos-port=22222&register=true&release=&side=provider&timestamp=1569313206665
+        // 1.3) 通过override数据重新配置url，使得配置是最新的。
+        // dubbo://172.16.6.72:20880/org.apache.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=org.apache.dubbo.demo.DemoService&bind.ip=172.16.6.72&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello&pid=9440&qos-port=22222&register=true&release=&side=provider&timestamp=1569313206665
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
 
-        //export invoker
-        // 3、本地导出 - 按协议启动本地服务【重点】
+        // ————————————————————————————————2. 服务暴露——————————————————————————————————————
+        // 2、服务暴露 - 按协议启动本地服务【重点】
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
-        // url to registry
+        // ————————————————————————————————3. 远程注册——————————————————————————————————————
+        // 3.1) 根据 URL 加载 Registry 实现类，比如ZookeeperRegistry
         final Registry registry = getRegistry(originInvoker);  // 获取Registry实例
+        // 3.2) 返回注册到注册表的url并过滤url参数一次
         final URL registeredProviderUrl = getRegisteredProviderUrl(providerUrl, registryUrl);
+        // 3.3) 生成ProviderInvokerWrapper，它会保存服务提供方和消费方的调用地址和代理对象
         ProviderInvokerWrapper<T> providerInvokerWrapper = ProviderConsumerRegTable.registerProvider(originInvoker, registryUrl, registeredProviderUrl);
-        //to judge if we need to delay publish
+        // 3.4) 判断是否需要注册服务
         boolean register = registeredProviderUrl.getParameter("register", true);
         if (register) {
-            //  向registry注册地址【重点】
+            //  3.5) 向注册中心注册服务【重点】
             register(registryUrl, registeredProviderUrl);
+            // 设置reg为true，表示服务注册
             providerInvokerWrapper.setReg(true);
         }
 
-        // Deprecated! Subscribe to override rules in 2.6.x or before.
+        // ————————————————————————————————4.订阅override 数据——————————————————————————————————————
+        // 向注册中心进行订阅 override 数据（Deprecated!，2.6.x以前使用的）
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
-
+        // 设置注册中心url
         exporter.setRegisterUrl(registeredProviderUrl);
+        // 设置override数据订阅的url
         exporter.setSubscribeUrl(overrideSubscribeUrl);
+
+        // ————————————————————————————————5.返回DestroyableExporter——————————————————————————————————————
         //Ensure that a new exporter instance is returned every time export
+        // 创建并返回 DestroyableExporter【每次导出都返回一个新的导出器实例】
         return new DestroyableExporter<>(exporter);
     }
 
@@ -262,11 +273,16 @@ public class RegistryProtocol implements Protocol {
     @SuppressWarnings("unchecked")
     private <T> ExporterChangeableWrapper<T> doLocalExport(final Invoker<T> originInvoker, URL providerUrl) {
 
-        //获取到url里面的export属性：dubbo://.....
+        // 获取到url里面的export属性：dubbo://.....
         String key = getCacheKey(originInvoker);
 
+        // 加入缓存
         return (ExporterChangeableWrapper<T>) bounds.computeIfAbsent(key, s -> {
+            // 创建 Invoker 为委托类对象
+            // providerUrl: http://172.16.6.72:8080/org.apache.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=org.apache.dubbo.demo.DemoService&bind.ip=172.16.6.72&bind.port=8080&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello&pid=9712&qos-port=22222&register=true&release=&server=tomcat&side=provider&timestamp=1569469891905
             Invoker<?> invokerDelegate = new InvokerDelegate<>(originInvoker, providerUrl);
+            // 调用 protocol 的 export 方法暴露服务
+            // Protocol$Adaptive --> ProtocolFilterWrapper --> ProtocolListenerWrapper --> AbstractProxyProtocol --> HttpProtocol
             return new ExporterChangeableWrapper<>((Exporter<T>) protocol.export(invokerDelegate), originInvoker);
         });
     }
