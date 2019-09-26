@@ -24,6 +24,7 @@ import org.apache.dubbo.rpc.cluster.Directory;
 /**
  * BroadcastCluster
  *
+ * 遍历invokers，逐个调用，在循环调用结束后，只要任意一台报错就报错
  */
 public class BroadcastCluster implements Cluster {
 

@@ -31,6 +31,7 @@ public class ForkingCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建ForkingClusterInvoker
         return new ForkingClusterInvoker<T>(directory);
     }
 

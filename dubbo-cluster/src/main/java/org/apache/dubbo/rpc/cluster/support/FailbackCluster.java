@@ -24,6 +24,7 @@ import org.apache.dubbo.rpc.cluster.Directory;
 /**
  * {@link FailbackClusterInvoker}
  *
+ * 在抛出异常的时候，做了失败重试的机制，主要实现在addFailed。
  */
 public class FailbackCluster implements Cluster {
 
@@ -31,6 +32,7 @@ public class FailbackCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建一个FailbackClusterInvoker
         return new FailbackClusterInvoker<T>(directory);
     }
 

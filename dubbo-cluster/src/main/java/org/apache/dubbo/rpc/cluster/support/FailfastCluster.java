@@ -24,6 +24,7 @@ import org.apache.dubbo.rpc.cluster.Directory;
 /**
  * {@link FailfastClusterInvoker}
  *
+ * 调用抛出异常就直接抛出
  */
 public class FailfastCluster implements Cluster {
 
@@ -31,6 +32,7 @@ public class FailfastCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建FailfastClusterInvoker
         return new FailfastClusterInvoker<T>(directory);
     }
 

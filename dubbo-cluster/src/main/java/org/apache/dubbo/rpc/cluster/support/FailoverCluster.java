@@ -24,6 +24,7 @@ import org.apache.dubbo.rpc.cluster.Directory;
 /**
  * {@link FailoverClusterInvoker}
  *
+ * 实现了失败重试的容错策略，当调用失败的时候，记录下异常，然后循环调用下一个选择出来的invoker，直到重试次数用完，抛出最后一次的异常。
  */
 public class FailoverCluster implements Cluster {
 
@@ -31,6 +32,7 @@ public class FailoverCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建FailoverClusterInvoker
         return new FailoverClusterInvoker<T>(directory);
     }
 
