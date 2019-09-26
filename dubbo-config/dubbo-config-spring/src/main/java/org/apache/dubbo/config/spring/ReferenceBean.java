@@ -47,7 +47,21 @@ import static org.apache.dubbo.common.constants.CommonConstants.COMMA_SPLIT_PATT
 
 /**
  * ReferenceFactoryBean
+ *
+ * 实现了FactoryBean接口，继承了ReferenceConfig。
+ *
+ * 所以ReferenceBean作为dubbo中能生产对象的工厂Bean，而我们要引用服务，也就是要有一个该服务的对象。
+ *
+ * 服务引用被触发有两个时机：
+ * 1） Spring 容器调用 ReferenceBean 的 afterPropertiesSet 方法时引用服务（饿汉式）
+ * 2） 在 ReferenceBean 对应的服务被注入到其他类中时引用（懒汉式）【默认】
+ *
+ * 默认情况下，Dubbo 使用懒汉式引用服务。如果需要使用饿汉式，可通过配置 <dubbo:reference> 的 init 属性开启。
+ *
+ * 看get()方法
+ *
  */
+
 public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean, ApplicationContextAware, InitializingBean, DisposableBean {
 
     private static final long serialVersionUID = 213195494150089726L;

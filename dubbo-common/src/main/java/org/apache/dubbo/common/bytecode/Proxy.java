@@ -63,7 +63,7 @@ public abstract class Proxy {
      * @return Proxy instance.
      */
     public static Proxy getProxy(Class<?>... ics) {
-        // 获得代理类
+        // 获得Proxy的类加载器来进行生成代理类
         return getProxy(ClassUtils.getClassLoader(Proxy.class), ics);
     }
 

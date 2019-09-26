@@ -135,7 +135,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     private static final ConsumerConfigurationListener CONSUMER_CONFIGURATION_LISTENER = new ConsumerConfigurationListener();
     private ReferenceConfigurationListener serviceConfigurationListener;
 
-
+    // 一个接口+一个url 就是一个本地的服务目录
     public RegistryDirectory(Class<T> serviceType, URL url) {
         super(url);
         if (serviceType == null) {
