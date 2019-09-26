@@ -42,18 +42,24 @@ public class RouterChain<T> {
     // instance will never delete or recreate.
     private List<Router> builtinRouters = Collections.emptyList();
 
+    // 构造路由链
     public static <T> RouterChain<T> buildChain(URL url) {
+        // MockInvokersSelector -> TagRouter -> AppRouter -> ServiceRouter
         return new RouterChain<>(url);
     }
 
+    // 构造路由链
     private RouterChain(URL url) {
+        // 加载路由工厂
         List<RouterFactory> extensionFactories = ExtensionLoader.getExtensionLoader(RouterFactory.class)
                 .getActivateExtension(url, (String[]) null);
 
+        //  加入集合
         List<Router> routers = extensionFactories.stream()
                 .map(factory -> factory.getRouter(url))
                 .collect(Collectors.toList());
 
+        // 排序
         initWithRouters(routers);
     }
 
@@ -88,7 +94,7 @@ public class RouterChain<T> {
     }
 
     /**
-     *
+     * 根据路由链，过滤Invokers
      * @param url
      * @param invocation
      * @return

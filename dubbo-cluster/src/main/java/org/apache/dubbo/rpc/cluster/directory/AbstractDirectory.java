@@ -44,12 +44,16 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
     // logger
     private static final Logger logger = LoggerFactory.getLogger(AbstractDirectory.class);
 
+    // url对象
     private final URL url;
 
+    // 是否销毁
     private volatile boolean destroyed = false;
 
+    // 消费者端url：包含了providers,configurators,routers
     private volatile URL consumerUrl;
 
+    // 路由链
     protected RouterChain<T> routerChain;
 
     public AbstractDirectory(URL url) {
@@ -76,12 +80,14 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
         setRouterChain(routerChain);
     }
 
+    // 根据调用对象 返回 Invoker集合
     @Override
     public List<Invoker<T>> list(Invocation invocation) throws RpcException {
+        // 如果销毁，则抛出异常
         if (destroyed) {
             throw new RpcException("Directory already destroyed .url: " + getUrl());
         }
-
+        // 调用doList来获得Invoker集合
         return doList(invocation);
     }
 

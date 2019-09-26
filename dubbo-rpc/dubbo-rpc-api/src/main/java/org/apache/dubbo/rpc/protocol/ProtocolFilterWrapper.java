@@ -56,7 +56,7 @@ public class ProtocolFilterWrapper implements Protocol {
 
     // 该方法就是创建带 Filter 链的 Invoker 对象。倒序的把每一个过滤器串连起来，形成一个invoker。
     private static <T> Invoker<T> buildInvokerChain(final Invoker<T> invoker, String key, String group) {
-        // 原来的invoker独享
+        // 原来的invoker对象：ListenerInvokerWrapper
         Invoker<T> last = invoker;
 
         // 获得过滤器的所有扩展实现类实例集合

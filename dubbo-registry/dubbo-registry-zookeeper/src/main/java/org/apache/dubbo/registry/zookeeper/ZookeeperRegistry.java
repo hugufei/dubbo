@@ -170,8 +170,8 @@ public class ZookeeperRegistry extends FailbackRegistry {
      * 服务消费者：
      * -- consumer://172.16.6.72/org.apache.dubbo.demo.DemoService?application=demo-consumer&category=providers,configurators,routers&check=false&dubbo=2.0.2&interface=org.apache.dubbo.demo.DemoService&lazy=false&loadbalance=roundrobin&methods=sayHello&pid=9244&qos-port=33333&side=consumer&sticky=false&timestamp=1569394440659
      *
-     * @param url
-     * @param listener
+     * @param url ： 订阅的信息
+     * @param listener ： 就是服务目录
      */
     @Override
     public void doSubscribe(final URL url, final NotifyListener listener) {
@@ -220,36 +220,39 @@ public class ZookeeperRegistry extends FailbackRegistry {
                     }
                 }
             } else {
+                // 从注册中心拿到的全部url数据
+                // 1) 服务提供者:拿/dubbo/org.apache.dubbo.demo.DemoService/configurators下的全部URL数据
+                // 2) 服务消费者:拿/dubbo/org.apache.dubbo.demo.DemoService/configurators+routers+providers下的全部URL数据
                 List<URL> urls = new ArrayList<>();
-                //服务提供者：/dubbo/org.apache.dubbo.demo.DemoService/configurators
-                //服务消费者：/dubbo/org.apache.dubbo.demo.DemoService/configurators+routers+providers
+                // 取category的值 - 遍历服务目录
                 for (String path : toCategoriesPath(url)) {
-                    // 按url获得监听器集合
+                    // 按url获得监听器集合。第一次进来为空。 NotifyListener其实就是服务目录
                     ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
                     if (listeners == null) {
                         zkListeners.putIfAbsent(url, new ConcurrentHashMap<>());
                         listeners = zkListeners.get(url);
                     }
-                    // 获得子节点监听器
+                    // 获取或创建【RegistryDirectory对象】对应的监听器
                     ChildListener zkListener = listeners.get(listener);
                     if (zkListener == null) {
                         listeners.putIfAbsent(listener, (parentPath, currentChilds) -> {
-                            // 通知服务变化 回调NotifyListener：【增量的通知】
+                            // 通知服务变化 回调NotifyListener：【下次parentPath数据改变的时候通知我】
                             ZookeeperRegistry.this.notify(url, listener, toUrlsWithEmpty(url, parentPath, currentChilds));
                         });
                         zkListener = listeners.get(listener);
                     }
                     // 创建type节点，该节点为持久节点:/dubbo/org.apache.dubbo.demo.DemoService/providers
                     zkClient.create(path, false);
-                    // 消费者监听该节点下的子节点变化：/dubbo/org.apache.dubbo.demo.DemoService/providers
+                    // 获取path下的全部数据, 并添加监听器[在消费者订阅的场景下，children为该路径下所有的服务提供者的链接]
                     List<String> children = zkClient.addChildListener(path, zkListener);
-                    // 在消费者订阅的场景下，children为该路径下所有的服务提供者的链接
                     if (children != null) {
                         // 这个方法加一个empty：开头的连接，或者是转码服务提供者的链接
                         urls.addAll(toUrlsWithEmpty(url, path, children));
                     }
                 }
-                // 通知数据变化：【第二次全量的通知】，说白了就是更新本地缓存的数据
+                // 回调listener，通知数据变化：说白了就是更新本地缓存的数据
+                // 这里listener就是RegistryDirectory对象，调用notify会触发RegistryDirectory的数据更新
+                // 消费段端订阅的时候,会拿providers,configurators,routers节点下的全部数据
                 notify(url, listener, urls);
             }
         } catch (Throwable e) {

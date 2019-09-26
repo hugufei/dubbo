@@ -112,10 +112,15 @@ public class RpcInvocation implements Invocation, Serializable {
     }
 
     public RpcInvocation(String methodName, Class<?>[] parameterTypes, Object[] arguments, Map<String, String> attachments, Invoker<?> invoker) {
+        // 设置方法名
         this.methodName = methodName;
+        // 设置参数类型
         this.parameterTypes = parameterTypes == null ? new Class<?>[0] : parameterTypes;
+        // 设置参数
         this.arguments = arguments == null ? new Object[0] : arguments;
+        // 设置附加值
         this.attachments = attachments == null ? new HashMap<String, String>() : attachments;
+        // 设置invoker实体
         this.invoker = invoker;
     }
 

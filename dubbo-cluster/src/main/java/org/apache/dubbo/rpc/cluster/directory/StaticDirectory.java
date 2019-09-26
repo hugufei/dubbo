@@ -30,6 +30,9 @@ import java.util.List;
 
 /**
  * StaticDirectory
+ *
+ * 静态 Directory 实现类，将传入的 invokers 集合，封装成静态的 Directory 对象。
+ *
  */
 public class StaticDirectory<T> extends AbstractDirectory<T> {
     private static final Logger logger = LoggerFactory.getLogger(StaticDirectory.class);
@@ -80,12 +83,15 @@ public class StaticDirectory<T> extends AbstractDirectory<T> {
             return;
         }
         super.destroy();
+        // 遍历invokers，销毁所有的invoker
         for (Invoker<T> invoker : invokers) {
             invoker.destroy();
         }
+        // 清除集合
         invokers.clear();
     }
 
+    // 构造路由链
     public void buildRouterChain() {
         RouterChain<T> routerChain = RouterChain.buildChain(getUrl());
         routerChain.setInvokers(invokers);
@@ -94,6 +100,7 @@ public class StaticDirectory<T> extends AbstractDirectory<T> {
 
     @Override
     protected List<Invoker<T>> doList(Invocation invocation) throws RpcException {
+        // 经过路由链过滤，返回符合条件的invokers
         List<Invoker<T>> finalInvokers = invokers;
         if (routerChain != null) {
             try {

@@ -456,26 +456,28 @@ public class RegistryProtocol implements Protocol {
     private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
         // 创建 RegistryDirectory 实例，本地服务目录
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
-        // 设置注册中心
+        // 为服务目录设置注册中心
         directory.setRegistry(registry);
         // 设置协议
         directory.setProtocol(protocol);
         // all attributes of REFER_KEY
         // 所有属性放到map中
         Map<String, String> parameters = new HashMap<String, String>(directory.getUrl().getParameters());
-        // 生成服务消费者链接
+        // 生成服务消费者链接：consumer://172.16.6.72/org.apache.dubbo.demo.DemoService?application=demo-consumer&check=false&dubbo=2.0.2&interface=org.apache.dubbo.demo.DemoService&lazy=false&loadbalance=roundrobin&methods=sayHello&pid=1292&qos-port=33333&side=consumer&sticky=false&timestamp=1569488328931
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
+
         // 注册服务消费者，在 consumers 目录下新节点
         if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
             directory.setRegisteredConsumerUrl(getRegisteredConsumerUrl(subscribeUrl, url));
-            // 注册服务消费者
+            // 向注册中心 注册 服务消费者url
             registry.register(directory.getRegisteredConsumerUrl());
         }
-        // 创建路由链
+
+        // 为服务目录创建路由链
         directory.buildRouterChain(subscribeUrl);
-        // 订阅 providers、configurators、routers 等节点数据
-        directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
-                PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
+
+        // 注册中心订阅数据,、绑定监听器、更新自己
+        directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY, PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 
         // 一个注册中心可能有多个服务提供者，因此这里需要将多个服务提供者合并为一个，生成一个invoker
         Invoker invoker = cluster.join(directory);

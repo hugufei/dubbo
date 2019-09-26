@@ -42,23 +42,27 @@ public class InvokerInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        // 获得方法名称
         String methodName = method.getName();
+        // 获得方法参数类型
         Class<?>[] parameterTypes = method.getParameterTypes();
         // 如果方法参数类型是object类型，则直接反射调用
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(invoker, args);
         }
-        // 基础方法，不使用 RPC 调用
+        // 如果这个方法是toString，则直接调用invoker.toString()
         if ("toString".equals(methodName) && parameterTypes.length == 0) {
             return invoker.toString();
         }
+        // 如果这个方法是hashCode直接调用invoker.hashCode()
         if ("hashCode".equals(methodName) && parameterTypes.length == 0) {
             return invoker.hashCode();
         }
+        // 如果这个方法是equals，直接调用invoker.equals(args[0])
         if ("equals".equals(methodName) && parameterTypes.length == 1) {
             return invoker.equals(args[0]);
         }
-        // rpc调用
+        // 调用invoke
         return invoker.invoke(new RpcInvocation(method, args)).recreate();
     }
 }

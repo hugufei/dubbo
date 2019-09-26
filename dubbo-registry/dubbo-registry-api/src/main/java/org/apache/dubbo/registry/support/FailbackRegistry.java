@@ -306,6 +306,8 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         }
     }
 
+    // url: consumer://172.16.6.72/org.apache.dubbo.demo.DemoService?application=demo-consumer&category=providers,configurators,routers&check=false&dubbo=2.0.2&interface=org.apache.dubbo.demo.DemoService&lazy=false&loadbalance=roundrobin&methods=sayHello&pid=1292&qos-port=33333&side=consumer&sticky=false&timestamp=1569488328931
+    // listener传的就是RegistryDirectory对象
     @Override
     public void subscribe(URL url, NotifyListener listener) {
         super.subscribe(url, listener);
@@ -382,7 +384,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
             throw new IllegalArgumentException("notify listener == null");
         }
         try {
-            // 通知 url 数据变化
+            // 通知 listener url 的数据有变化
             doNotify(url, listener, urls);
         } catch (Exception t) {
             // Record a failed registration request to a failed list, retry regularly

@@ -28,6 +28,7 @@ import org.apache.dubbo.rpc.cluster.support.FailoverCluster;
  * <a href="http://en.wikipedia.org/wiki/Computer_cluster">Cluster</a>
  * <a href="http://en.wikipedia.org/wiki/Fault-tolerant_system">Fault-Tolerant</a>
  *
+ * 集群容错还是很好理解的，就是当你调用失败的时候所作出的措施
  */
 @SPI(FailoverCluster.NAME)
 public interface Cluster {
