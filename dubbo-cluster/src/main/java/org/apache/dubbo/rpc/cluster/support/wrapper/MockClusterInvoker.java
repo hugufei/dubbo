@@ -35,12 +35,16 @@ import java.util.List;
 import static org.apache.dubbo.rpc.cluster.Constants.INVOCATION_NEED_MOCK;
 import static org.apache.dubbo.rpc.Constants.MOCK_KEY;
 
+// 定义降级后的返回策略的实现
+// 根据配置的不同来决定不用降级还是强制服务降级还是失败后再服务降级。
 public class MockClusterInvoker<T> implements Invoker<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(MockClusterInvoker.class);
 
+    // 服务目录
     private final Directory<T> directory;
 
+    // invoker对象
     private final Invoker<T> invoker;
 
     public MockClusterInvoker(Directory<T> directory, Invoker<T> invoker) {
@@ -68,43 +72,54 @@ public class MockClusterInvoker<T> implements Invoker<T> {
         return directory.getInterface();
     }
 
+    // 定义降级后的返回策略的实现，根据配置的不同来决定不用降级还是强制服务降级还是失败后再服务降级。
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
         Result result = null;
 
+        // 获得 "mock" 配置项，有多种配置方式
         String value = directory.getUrl().getMethodParameter(invocation.getMethodName(), MOCK_KEY, Boolean.FALSE.toString()).trim();
+
+        // 如果没有mock，则直接吊用
         if (value.length() == 0 || value.equalsIgnoreCase("false")) {
             //no mock
             result = this.invoker.invoke(invocation);
-        } else if (value.startsWith("force")) {
+        }
+        // 如果强制服务降级
+        else if (value.startsWith("force")) {
             if (logger.isWarnEnabled()) {
                 logger.warn("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + directory.getUrl());
             }
             //force:direct mock
+            // 直接调用 Mock Invoker ，执行本地 Mock 逻辑
             result = doMockInvoke(invocation, null);
         } else {
             //fail-mock
+            // 失败服务降级
             try {
+                // 正常调用
                 result = this.invoker.invoke(invocation);
             } catch (RpcException e) {
                 if (e.isBiz()) {
                     throw e;
                 }
-
                 if (logger.isWarnEnabled()) {
                     logger.warn("fail-mock: " + invocation.getMethodName() + " fail-mock enabled , url : " + directory.getUrl(), e);
                 }
+                // 如果调用失败，则服务降级
                 result = doMockInvoke(invocation, e);
             }
         }
         return result;
     }
 
+    // 执行本地Mock,服务降级。
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Result doMockInvoke(Invocation invocation, RpcException e) {
         Result result = null;
         Invoker<T> minvoker;
 
+        // 获取mockInvokers
         List<Invoker<T>> mockInvokers = selectMockInvoker(invocation);
         if (CollectionUtils.isEmpty(mockInvokers)) {
             minvoker = (Invoker<T>) new MockInvoker(directory.getUrl(), directory.getInterface());
@@ -139,17 +154,25 @@ public class MockClusterInvoker<T> implements Invoker<T> {
      * directory.list() will return a list of normal invokers if Constants.INVOCATION_NEED_MOCK is present in invocation, otherwise, a list of mock invokers will return.
      * if directory.list() returns more than one mock invoker, only one of them will be used.
      *
+     * 返回MockInvoker列表：
+     * 1） 如果调用中存在Constants.INVOCATION_NEED_MOCK，则directory.list（）将返回常规调用者的列表
+     * 2） 否则，将返回模拟调用者的列表。、
+     * 3） 如果directory.list（）返回一个以上的模拟调用程序，则仅使用其中一个
+     *
      * @param invocation
      * @return
      */
+    // 路由匹配 Mock Invoker 集合。
     private List<Invoker<T>> selectMockInvoker(Invocation invocation) {
         List<Invoker<T>> invokers = null;
         //TODO generic invoker？
         if (invocation instanceof RpcInvocation) {
             //Note the implicit contract (although the description is added to the interface declaration, but extensibility is a problem. The practice placed in the attachment needs to be improved)
+            // 注意隐式契约（尽管描述被添加到接口声明中，但是可扩展性是一个问题。附件中的做法需要改进）
             ((RpcInvocation) invocation).setAttachment(INVOCATION_NEED_MOCK, Boolean.TRUE.toString());
             //directory will return a list of normal invokers if Constants.INVOCATION_NEED_MOCK is present in invocation, otherwise, a list of mock invokers will return.
             try {
+                // 如果调用中存在Constants.INVOCATION_NEED_MOCK，则目录将返回正常调用者列表，否则，将返回模拟调用者列表
                 invokers = directory.list(invocation);
             } catch (RpcException e) {
                 if (logger.isInfoEnabled()) {

@@ -24,6 +24,8 @@ import org.apache.dubbo.rpc.protocol.AbstractProtocol;
 
 /**
  * MockProtocol is used for generating a mock invoker by URL and type on consumer side
+ *
+ * MockProtocol用于在用户端通过URL和类型生成模拟调用程序
  */
 final public class MockProtocol extends AbstractProtocol {
 

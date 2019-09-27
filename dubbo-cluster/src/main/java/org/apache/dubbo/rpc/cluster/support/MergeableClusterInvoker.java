@@ -60,14 +60,28 @@ public class MergeableClusterInvoker<T> extends AbstractClusterInvoker<T> {
         super(directory);
     }
 
+    /**
+     * 1) 如果没有配置 merger，则不合并结果集，直接调用实例执行后返回
+     * 2) 异步调用所有的实例
+     * 3) 获取要调用的方法的返回类型，根据返回类型进行调用，如果是 . 开头的，则调用方法；否则如果有配置自定义合并器，则调用自动以合并器，如果没有则调用默认的合并器
+     */
+
     @Override
     protected Result doInvoke(Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         checkInvokers(invokers, invocation);
+
+        // 获取 merger 配置参数值
         String merger = getUrl().getMethodParameter(invocation.getMethodName(), MERGER_KEY);
+
+
+        // 如果没有配merger
         if (ConfigUtils.isEmpty(merger)) { // If a method doesn't have a merger, only invoke one Group
+
+            // 没有配置 merger，则默认所有调用实例都是一个组的
             for (final Invoker<T> invoker : invokers) {
                 if (invoker.isAvailable()) {
                     try {
+                        // 调用可用的实例
                         return invoker.invoke(invocation);
                     } catch (RpcException e) {
                         if (e.isNoInvokerAvailableAfterFilter()) {
@@ -78,6 +92,7 @@ public class MergeableClusterInvoker<T> extends AbstractClusterInvoker<T> {
                     }
                 }
             }
+            // 如果都是不可用的，则调用第一个实例
             return invokers.iterator().next().invoke(invocation);
         }
 
@@ -89,6 +104,7 @@ public class MergeableClusterInvoker<T> extends AbstractClusterInvoker<T> {
             returnType = null;
         }
 
+        // 异步调用所有的实例，并把对象存储到 results 中
         Map<String, Result> results = new HashMap<>();
         for (final Invoker<T> invoker : invokers) {
             RpcInvocation subInvocation = new RpcInvocation(invocation, invoker);
@@ -98,17 +114,21 @@ public class MergeableClusterInvoker<T> extends AbstractClusterInvoker<T> {
 
         Object result = null;
 
+        // 获取超时时间
         List<Result> resultList = new ArrayList<Result>(results.size());
 
+        // 遍历获取执行实例的结果
         for (Map.Entry<String, Result> entry : results.entrySet()) {
             Result asyncResult = entry.getValue();
             try {
                 Result r = asyncResult.get();
+                // 调用的服务内部有异常，不抛出，记录
                 if (r.hasException()) {
                     log.error("Invoke " + getGroupDescFromServiceKey(entry.getKey()) +
                                     " failed: " + r.getException().getMessage(),
                             r.getException());
                 } else {
+                    // 保存执行结果
                     resultList.add(r);
                 }
             } catch (Exception e) {
@@ -126,6 +146,7 @@ public class MergeableClusterInvoker<T> extends AbstractClusterInvoker<T> {
             return AsyncRpcResult.newDefaultAsyncResult(invocation);
         }
 
+        // . 开头，则需要调用自定义的方法来进行合并
         if (merger.startsWith(".")) {
             merger = merger.substring(1);
             Method method;
@@ -140,6 +161,7 @@ public class MergeableClusterInvoker<T> extends AbstractClusterInvoker<T> {
             }
             result = resultList.remove(0).getValue();
             try {
+                // 调用方法进行合并
                 if (method.getReturnType() != void.class
                         && method.getReturnType().isAssignableFrom(result.getClass())) {
                     for (Result r : resultList) {
@@ -156,8 +178,10 @@ public class MergeableClusterInvoker<T> extends AbstractClusterInvoker<T> {
         } else {
             Merger resultMerger;
             if (ConfigUtils.isDefault(merger)) {
+                // 执行默认的合并器
                 resultMerger = MergerFactory.getMerger(returnType);
             } else {
+                // 执行自定义的 Merger 合并器来合并
                 resultMerger = ExtensionLoader.getExtensionLoader(Merger.class).getExtension(merger);
             }
             if (resultMerger != null) {
@@ -165,6 +189,7 @@ public class MergeableClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 for (Result r : resultList) {
                     rets.add(r.getValue());
                 }
+                // 调用合并器 merge 方法
                 result = resultMerger.merge(
                         rets.toArray((Object[]) Array.newInstance(returnType, 0)));
             } else {
