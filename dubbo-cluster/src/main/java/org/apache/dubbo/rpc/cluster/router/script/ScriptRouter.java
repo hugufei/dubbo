@@ -48,18 +48,24 @@ import static org.apache.dubbo.rpc.cluster.Constants.TYPE_KEY;
 
 /**
  * ScriptRouter
+ *
+ * 基于脚本的路由实现类
  */
 public class ScriptRouter extends AbstractRouter {
     public static final String NAME = "SCRIPT_ROUTER";
     private static final int SCRIPT_ROUTER_DEFAULT_PRIORITY = 0;
     private static final Logger logger = LoggerFactory.getLogger(ScriptRouter.class);
 
+    // 脚本类型 与 ScriptEngine 的映射缓存
     private static final Map<String, ScriptEngine> engines = new ConcurrentHashMap<>();
 
+    // 脚本
     private final ScriptEngine engine;
 
+    // 路由规则
     private final String rule;
 
+    // 编译脚本
     private CompiledScript function;
 
     public ScriptRouter(URL url) {
@@ -69,6 +75,7 @@ public class ScriptRouter extends AbstractRouter {
         engine = getEngine(url);
         rule = getRule(url);
         try {
+            // 创建脚本
             Compilable compilable = (Compilable) engine;
             function = compilable.compile(rule);
         } catch (ScriptException e) {

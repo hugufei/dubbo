@@ -32,6 +32,9 @@ import static org.apache.dubbo.rpc.cluster.Constants.MOCK_PROTOCOL;
 /**
  * A specific Router designed to realize mock feature.
  * If a request is configured to use mock, then this router guarantees that only the invokers with protocol MOCK appear in final the invoker list, all other invokers will be excluded.
+ *
+ * 路由选择器实现类。
+ *
  */
 public class MockInvokersSelector extends AbstractRouter {
 
@@ -42,30 +45,37 @@ public class MockInvokersSelector extends AbstractRouter {
         this.priority = MOCK_INVOKERS_DEFAULT_PRIORITY;
     }
 
+    // 是根据配置来决定选择普通的invoker集合还是mockInvoker集合。
     @Override
-    public <T> List<Invoker<T>> route(final List<Invoker<T>> invokers,
-                                      URL url, final Invocation invocation) throws RpcException {
+    public <T> List<Invoker<T>> route(final List<Invoker<T>> invokers,URL url, final Invocation invocation) throws RpcException {
+        // 判空
         if (CollectionUtils.isEmpty(invokers)) {
             return invokers;
         }
-
+        // 如果附加值为空，则直接获得普通的invoker集合
         if (invocation.getAttachments() == null) {
             return getNormalInvokers(invokers);
         } else {
+            // 获得是否需要降级的值
             String value = invocation.getAttachments().get(INVOCATION_NEED_MOCK);
+            // 如果为空，则获得普通的Invoker集合
             if (value == null) {
                 return getNormalInvokers(invokers);
             } else if (Boolean.TRUE.toString().equalsIgnoreCase(value)) {
+                // 获得MockedInvoker集合
                 return getMockedInvokers(invokers);
             }
         }
         return invokers;
     }
 
+    // 获得MockedInvoker集合。
     private <T> List<Invoker<T>> getMockedInvokers(final List<Invoker<T>> invokers) {
+        // 如果没有MockedInvoker，则返回null
         if (!hasMockProviders(invokers)) {
             return null;
         }
+        // 找到MockedInvoker，往sInvokers中加入，并且返回
         List<Invoker<T>> sInvokers = new ArrayList<Invoker<T>>(1);
         for (Invoker<T> invoker : invokers) {
             if (invoker.getUrl().getProtocol().equals(MOCK_PROTOCOL)) {
@@ -75,12 +85,14 @@ public class MockInvokersSelector extends AbstractRouter {
         return sInvokers;
     }
 
+    // 获得普通的Invoker集合，不包含mock的。
     private <T> List<Invoker<T>> getNormalInvokers(final List<Invoker<T>> invokers) {
         if (!hasMockProviders(invokers)) {
             return invokers;
         } else {
             List<Invoker<T>> sInvokers = new ArrayList<Invoker<T>>(invokers.size());
             for (Invoker<T> invoker : invokers) {
+                // 把不是MockedInvoker的invoker加入sInvokers，返回
                 if (!invoker.getUrl().getProtocol().equals(MOCK_PROTOCOL)) {
                     sInvokers.add(invoker);
                 }
@@ -89,6 +101,7 @@ public class MockInvokersSelector extends AbstractRouter {
         }
     }
 
+    // 判断是否有MockInvoker。
     private <T> boolean hasMockProviders(final List<Invoker<T>> invokers) {
         boolean hasMockProvider = false;
         for (Invoker<T> invoker : invokers) {

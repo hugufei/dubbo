@@ -45,6 +45,8 @@ import static org.apache.dubbo.rpc.Constants.FORCE_USE_TAG;
 
 /**
  * TagRouter, "application.tag-router"
+ *
+ * 标签路由
  */
 public class TagRouter extends AbstractRouter implements ConfigurationListener {
     public static final String NAME = "TAG_ROUTER";

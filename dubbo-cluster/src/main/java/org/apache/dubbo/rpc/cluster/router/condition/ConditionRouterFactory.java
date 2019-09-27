@@ -23,6 +23,7 @@ import org.apache.dubbo.rpc.cluster.RouterFactory;
 /**
  * ConditionRouterFactory
  *
+ * 基于条件表达式规则路由工厂类。
  */
 public class ConditionRouterFactory implements RouterFactory {
 

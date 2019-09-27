@@ -31,6 +31,7 @@ import java.util.List;
  * @see org.apache.dubbo.rpc.cluster.Cluster#join(Directory)
  * @see org.apache.dubbo.rpc.cluster.Directory#list(Invocation)
  */
+// 路由规则 决定一次 dubbo 服务调用的目标服务器，分为条件路由规则和脚本路由规则，并且支持可扩展
 public interface Router extends Comparable<Router> {
 
     int DEFAULT_PRIORITY = Integer.MAX_VALUE;
