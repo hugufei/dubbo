@@ -24,7 +24,7 @@ import org.apache.dubbo.rpc.cluster.Directory;
 /**
  * {@link FailfastClusterInvoker}
  *
- * 调用抛出异常就直接抛出
+ * 快速失败，抛出异常
  */
 public class FailfastCluster implements Cluster {
 

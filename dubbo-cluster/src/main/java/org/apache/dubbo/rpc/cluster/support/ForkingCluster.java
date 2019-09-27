@@ -24,6 +24,7 @@ import org.apache.dubbo.rpc.cluster.Directory;
 /**
  * {@link ForkingClusterInvoker}
  *
+ * 并行调用多个实例，只要一个成功即返回
  */
 public class ForkingCluster implements Cluster {
 
