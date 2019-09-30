@@ -32,6 +32,7 @@ public interface Replier<T> {
      * @return response
      * @throws RemotingException
      */
+    // 回复请求结果
     Object reply(ExchangeChannel channel, T request) throws RemotingException;
 
 }

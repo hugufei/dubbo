@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class AbstractTimerTask implements TimerTask {
 
+    // 通道管理
     private final ChannelProvider channelProvider;
 
     private final Long tick;
@@ -92,6 +93,7 @@ public abstract class AbstractTimerTask implements TimerTask {
     protected abstract void doTask(Channel channel);
 
     interface ChannelProvider {
+        // 获得所有的通道集合，需要心跳的通道数组
         Collection<Channel> getChannels();
     }
 }

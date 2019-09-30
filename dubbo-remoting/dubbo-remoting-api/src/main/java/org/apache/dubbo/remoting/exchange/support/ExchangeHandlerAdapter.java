@@ -25,11 +25,15 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * ExchangeHandlerAdapter
+ *
+ * 该类继承了TelnetHandlerAdapter，实现了ExchangeHandler，是信息交换处理器的适配器类。
  */
 public abstract class ExchangeHandlerAdapter extends TelnetHandlerAdapter implements ExchangeHandler {
 
     @Override
     public CompletableFuture<Object> reply(ExchangeChannel channel, Object msg) throws RemotingException {
+        // 直接返回null
+        // 交由它的子类选择性的去实现具体的回复请求结果
         return null;
     }
 

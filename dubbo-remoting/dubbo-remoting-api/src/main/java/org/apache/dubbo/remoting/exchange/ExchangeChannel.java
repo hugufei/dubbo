@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * ExchangeChannel. (API/SPI, Prototype, ThreadSafe)
  */
+// 信息交换通道接口
 public interface ExchangeChannel extends Channel {
 
     /**
@@ -33,6 +34,7 @@ public interface ExchangeChannel extends Channel {
      * @return response future
      * @throws RemotingException
      */
+    // 发送请求消息
     CompletableFuture<Object> request(Object request) throws RemotingException;
 
     /**
@@ -43,6 +45,7 @@ public interface ExchangeChannel extends Channel {
      * @return response future
      * @throws RemotingException
      */
+    // 发送请求消息-带超时时间
     CompletableFuture<Object> request(Object request, int timeout) throws RemotingException;
 
     /**
@@ -50,6 +53,7 @@ public interface ExchangeChannel extends Channel {
      *
      * @return message handler
      */
+    // 获取ExchangeHandler
     ExchangeHandler getExchangeHandler();
 
     /**

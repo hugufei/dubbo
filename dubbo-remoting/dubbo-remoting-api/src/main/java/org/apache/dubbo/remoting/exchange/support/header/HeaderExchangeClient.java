@@ -41,15 +41,33 @@ import static org.apache.dubbo.remoting.Constants.TICKS_PER_WHEEL;
 
 /**
  * DefaultMessageClient
+ *
+ * 实现了ExchangeClient接口，
+ * 1)  是基于协议头的【信息交互客户端】实现类
+ * 2） 同样它是Client、Channel的适配器
+ *
+ * 该类主要的作用就是增加了心跳功能
+ * 为什么要增加心跳功能呢？
+ * 1） 对于长连接，一些拔网线等物理层的断开，会导致TCP的FIN消息来不及发送，对方收不到断开事件，那么就需要用到发送心跳包来检测连接是否断开。
+ * 2） consumer和provider断开，处理措施不一样，会分别做出重连和关闭通道的操作。
+ *
  */
 public class HeaderExchangeClient implements ExchangeClient {
 
+    // 客户端
     private final Client client;
+
+    // 信息交换通道
     private final ExchangeChannel channel;
 
+    // 空闲检测定时器
     private static final HashedWheelTimer IDLE_CHECK_TIMER = new HashedWheelTimer(
             new NamedThreadFactory("dubbo-client-idleCheck", true), 1, TimeUnit.SECONDS, TICKS_PER_WHEEL);
+
+    // 心跳定时任务
     private HeartbeatTimerTask heartBeatTimerTask;
+
+    // 重连定时任务
     private ReconnectTimerTask reconnectTimerTask;
 
     public HeaderExchangeClient(Client client, boolean startTimer) {
@@ -57,6 +75,7 @@ public class HeaderExchangeClient implements ExchangeClient {
         this.client = client;
         this.channel = new HeaderExchangeChannel(client);
 
+        // 开启重连任务和心跳任务
         if (startTimer) {
             URL url = client.getUrl();
             startReconnectTask(url);

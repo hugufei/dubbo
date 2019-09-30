@@ -21,7 +21,7 @@ import org.apache.dubbo.remoting.Client;
 /**
  * ExchangeClient. (API/SPI, Prototype, ThreadSafe)
  *
- *
+ * 继承了Client和ExchangeChannel，是信息交换客户端接口
  */
 public interface ExchangeClient extends Client, ExchangeChannel {
 
