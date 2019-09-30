@@ -25,6 +25,10 @@ import org.apache.dubbo.common.Resetable;
  *
  * @see org.apache.dubbo.remoting.Transporter#connect(org.apache.dubbo.common.URL, ChannelHandler)
  */
+// 客户端接口，可以看到它继承了Endpoint、Channel和Resetable接口
+// 1) 继承Endpoint: 客户端和服务端其实只是语义上的不同，客户端就是一个点。
+// 2) 继承Channel: 客户端跟通道是一一对应的
+// 3) 继承Resetable: 为了实现reset方法，该方法，不过已经打上@Deprecated注解，不推荐使用
 public interface Client extends Endpoint, Channel, Resetable, IdleSensible {
 
     /**

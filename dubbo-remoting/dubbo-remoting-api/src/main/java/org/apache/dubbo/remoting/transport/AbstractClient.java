@@ -42,11 +42,19 @@ import static org.apache.dubbo.common.constants.CommonConstants.THREADPOOL_KEY;
 
 /**
  * AbstractClient
+ *
+ * 客户端的抽象类
+ *
+ * 1） 做了客户端公用的重连逻辑
+ * 2） 抽象了打开客户端、关闭客户端、连接服务器、断开服务器连接以及获得通道方法
+ *
  */
 public abstract class AbstractClient extends AbstractEndpoint implements Client {
 
+    // 客户端线程名称
     protected static final String CLIENT_THREAD_POOL_NAME = "DubboClientHandler";
     private static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
+    // 连接锁
     private final Lock connectLock = new ReentrantLock();
     private final boolean needReconnect;
     protected volatile ExecutorService executor;
@@ -57,6 +65,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         needReconnect = url.getParameter(Constants.SEND_RECONNECT_KEY, false);
 
         try {
+            // 打开客户端
             doOpen();
         } catch (Throwable t) {
             close();
@@ -66,6 +75,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         }
         try {
             // connect.
+            // 连接服务器
             connect();
             if (logger.isInfoEnabled()) {
                 logger.info("Start " + getClass().getSimpleName() + " " + NetUtils.getLocalAddress() + " connect to the server " + getRemoteAddress());
@@ -85,15 +95,21 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
                             + " connect to the server " + getRemoteAddress() + ", cause: " + t.getMessage(), t);
         }
 
+        // 从缓存中获得线程池
         executor = (ExecutorService) ExtensionLoader.getExtensionLoader(DataStore.class)
                 .getDefaultExtension().get(CONSUMER_SIDE, Integer.toString(url.getPort()));
+
+        // 清除线程池缓存
         ExtensionLoader.getExtensionLoader(DataStore.class)
                 .getDefaultExtension().remove(CONSUMER_SIDE, Integer.toString(url.getPort()));
     }
 
     protected static ChannelHandler wrapChannelHandler(URL url, ChannelHandler handler) {
+        // 加入线程名称
         url = ExecutorUtil.setThreadName(url, CLIENT_THREAD_POOL_NAME);
+        // 设置使用的线程池类型，没有设置则使用cached
         url = url.addParameterIfAbsent(THREADPOOL_KEY, DEFAULT_CLIENT_THREADPOOL);
+        // 包装
         return ChannelHandlers.wrap(handler, url);
     }
 
@@ -166,7 +182,9 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
 
     @Override
     public void send(Object message, boolean sent) throws RemotingException {
+        //如果需要重连，并且此时没有连接
         if (needReconnect && !isConnected()) {
+            // 重连
             connect();
         }
         Channel channel = getChannel();
@@ -236,6 +254,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
         }
     }
 
+    // 客户端的重连逻辑
     @Override
     public void reconnect() throws RemotingException {
         if (!isConnected()) {

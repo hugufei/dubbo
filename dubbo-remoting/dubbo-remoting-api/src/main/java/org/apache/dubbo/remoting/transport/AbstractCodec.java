@@ -32,6 +32,8 @@ import static org.apache.dubbo.common.constants.CommonConstants.SIDE_KEY;
 
 /**
  * AbstractCodec
+ *
+ * 实现 Codec2 接口，，其中实现了一些编解码的公共逻辑。
  */
 public abstract class AbstractCodec implements Codec2 {
 
@@ -41,11 +43,15 @@ public abstract class AbstractCodec implements Codec2 {
 
     private static final String SERVER_SIDE = "server";
 
+    //检验消息长度
     protected static void checkPayload(Channel channel, long size) throws IOException {
+        // 默认长度
         int payload = Constants.DEFAULT_PAYLOAD;
         if (channel != null && channel.getUrl() != null) {
+            // 优先从url中获得消息长度配置，如果没有则用默认长度
             payload = channel.getUrl().getParameter(Constants.PAYLOAD_KEY, Constants.DEFAULT_PAYLOAD);
         }
+        // 如果消息长度过长，则报错
         if (payload > 0 && size > payload) {
             ExceedPayloadLimitException e = new ExceedPayloadLimitException(
                 "Data length too large: " + size + ", max payload: " + payload + ", channel: " + channel);
@@ -54,11 +60,14 @@ public abstract class AbstractCodec implements Codec2 {
         }
     }
 
+    // 获得序列化对象
     protected Serialization getSerialization(Channel channel) {
         return CodecSupport.getSerialization(channel.getUrl());
     }
 
+    // 是否为客户端侧的通道
     protected boolean isClientSide(Channel channel) {
+        // 获得是side对应的value
         String side = (String)channel.getAttribute(SIDE_KEY);
         if (CLIENT_SIDE.equals(side)) {
             return true;
@@ -67,16 +76,19 @@ public abstract class AbstractCodec implements Codec2 {
         } else {
             InetSocketAddress address = channel.getRemoteAddress();
             URL url = channel.getUrl();
+            // 判断url的主机地址是否和远程地址一样，如果是，则判断为client，如果不是，则判断为server
             boolean isClient = url.getPort() == address.getPort()
                 && NetUtils.filterLocalHost(url.getIp()).equals(
                 NetUtils.filterLocalHost(address.getAddress()
                     .getHostAddress()));
+            // 把value设置进去
             channel.setAttribute(SIDE_KEY, isClient ? CLIENT_SIDE
                 : SERVER_SIDE);
             return isClient;
         }
     }
 
+    // 是否为服务端侧的通道
     protected boolean isServerSide(Channel channel) {
         return !isClientSide(channel);
     }

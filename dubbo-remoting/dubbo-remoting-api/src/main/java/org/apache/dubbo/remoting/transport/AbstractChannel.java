@@ -23,6 +23,9 @@ import org.apache.dubbo.remoting.RemotingException;
 
 /**
  * AbstractChannel
+ *
+ * 通道的抽象类
+ *
  */
 public abstract class AbstractChannel extends AbstractPeer implements Channel {
 
@@ -30,6 +33,7 @@ public abstract class AbstractChannel extends AbstractPeer implements Channel {
         super(url, handler);
     }
 
+    // 只做了检测通道是否关闭的状态检测，没有实现具体的发送消息的逻辑。
     @Override
     public void send(Object message, boolean sent) throws RemotingException {
         if (isClosed()) {

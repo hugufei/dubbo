@@ -48,6 +48,7 @@ import static org.apache.dubbo.registry.Constants.REGISTRY_RETRY_PERIOD_KEY;
 // 1）继承了AbstractRegistry，AbstractRegistry中的注册订阅等方法，实际上就是一些内存缓存的变化，
 // 2）而真正的注册订阅的实现逻辑在FailbackRegistry实现，
 // 3）还提供了失败重试的机制。
+// 核心： 失败重试
 
 public abstract class FailbackRegistry extends AbstractRegistry {
 

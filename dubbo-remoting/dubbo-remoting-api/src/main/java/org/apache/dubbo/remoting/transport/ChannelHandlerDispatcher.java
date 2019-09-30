@@ -28,6 +28,12 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * ChannelListenerDispatcher
+ *
+ * 通道处理器调度器
+ *
+ * 1) 缓存了所有通道处理器
+ * 2) 并且每个操作都会去遍历该集合，执行相应的操作
+ *
  */
 public class ChannelHandlerDispatcher implements ChannelHandler {
 
@@ -64,8 +70,10 @@ public class ChannelHandlerDispatcher implements ChannelHandler {
 
     @Override
     public void connected(Channel channel) {
+        // 遍历通道处理器集合
         for (ChannelHandler listener : channelHandlers) {
             try {
+                // 连接
                 listener.connected(channel);
             } catch (Throwable t) {
                 logger.error(t.getMessage(), t);

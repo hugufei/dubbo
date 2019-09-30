@@ -17,8 +17,12 @@
 
 package org.apache.dubbo.remoting;
 
+// 可解码的接口,该接口有两个作用:
+// 1) 第一个是在调用真正的decode方法实现的时候会有一些校验，判断是否可以解码，并且对解码失败会有一些消息设置
+// 2) 第二个是被用来message核对用的。
 public interface Decodeable {
 
+    //解码
     public void decode() throws Exception;
 
 }
