@@ -90,12 +90,15 @@ public class ProtocolFilterWrapper implements Protocol {
                     public Result invoke(Invocation invocation) throws RpcException {
                         Result asyncResult;
                         try {
+                            // 依次调用各个过滤器，获得最终的返回结果
                             asyncResult = filter.invoke(next, invocation);
                         } catch (Exception e) {
                             // onError callback
+                            // 捕获异常，如果该过滤器是ListenableFilter类型的
                             if (filter instanceof ListenableFilter) {
                                 Filter.Listener listener = ((ListenableFilter) filter).listener();
                                 if (listener != null) {
+                                    //调用onError，回调错误信息
                                     listener.onError(e, invoker, invocation);
                                 }
                             }
@@ -166,24 +169,29 @@ public class ProtocolFilterWrapper implements Protocol {
 
         @Override
         public Result invoke(Invocation invocation) throws RpcException {
+            // 调用拦截器链的invoke
             Result asyncResult = filterInvoker.invoke(invocation);
 
+            // 把异步返回的结果加入到上下文中
             asyncResult.thenApplyWithContext(r -> {
                 for (int i = filters.size() - 1; i >= 0; i--) {
                     Filter filter = filters.get(i);
-                    // onResponse callback
+                    // 如果该过滤器是ListenableFilter类型的
                     if (filter instanceof ListenableFilter) {
+                        // 强制类型转化
                         Filter.Listener listener = ((ListenableFilter) filter).listener();
                         if (listener != null) {
+                            // 如果内部类listener不为空，则调用回调方法onResponse
                             listener.onResponse(r, filterInvoker, invocation);
                         }
                     } else {
+                        // 否则，直接调用filter的onResponse，做兼容。
                         filter.onResponse(r, filterInvoker, invocation);
                     }
                 }
                 return r;
             });
-
+            // 返回异步结果
             return asyncResult;
         }
 

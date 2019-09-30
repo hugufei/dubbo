@@ -28,6 +28,7 @@ import org.apache.dubbo.rpc.listener.ListenerExporterWrapper;
 import org.apache.dubbo.rpc.listener.ListenerInvokerWrapper;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.apache.dubbo.common.constants.RegistryConstants.REGISTRY_PROTOCOL;
 
@@ -81,6 +82,11 @@ public class ProtocolListenerWrapper implements Protocol {
                 Collections.unmodifiableList(
                         ExtensionLoader.getExtensionLoader(InvokerListener.class)
                                 .getActivateExtension(url, INVOKER_LISTENER_KEY)));
+
+//        Invoker<T> invoker = protocol.refer(type, url);
+//        List<InvokerListener> listeners = Collections.unmodifiableList(ExtensionLoader.getExtensionLoader(InvokerListener.class).getActivateExtension(url, INVOKER_LISTENER_KEY));
+//        return new ListenerInvokerWrapper<T>(invoker,listeners);
+
     }
 
     @Override

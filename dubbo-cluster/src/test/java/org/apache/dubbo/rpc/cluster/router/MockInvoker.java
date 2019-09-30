@@ -22,6 +22,7 @@ import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcException;
 
+//本地伪装的invoker实现类
 public class MockInvoker<T> implements Invoker<T> {
     private boolean available = false;
     private URL url;

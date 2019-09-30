@@ -50,6 +50,9 @@ import static org.apache.dubbo.rpc.Constants.INPUT_KEY;
 import static org.apache.dubbo.rpc.Constants.OUTPUT_KEY;
 /**
  * MonitorFilter. (SPI, Singleton, ThreadSafe)
+ *
+ * 过滤器实际用来做监控，监控服务的调用数量等
+ *
  */
 @Activate(group = {PROVIDER, CONSUMER})
 public class MonitorFilter extends ListenableFilter {
@@ -85,8 +88,11 @@ public class MonitorFilter extends ListenableFilter {
      */
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 如果开启监控
         if (invoker.getUrl().hasParameter(MONITOR_KEY)) {
+            // 设置监控开始时间
             invocation.setAttachment(MONITOR_FILTER_START_TIME, String.valueOf(System.currentTimeMillis()));
+            // 获得当前的调用数，并且增加
             getConcurrent(invoker, invocation).incrementAndGet(); // count up
         }
         return invoker.invoke(invocation); // proceed invocation chain
@@ -103,12 +109,16 @@ public class MonitorFilter extends ListenableFilter {
         return concurrent;
     }
 
+    //
     class MonitorListener implements Listener {
 
         @Override
         public void onResponse(Result result, Invoker<?> invoker, Invocation invocation) {
+            // 如果开启监控
             if (invoker.getUrl().hasParameter(MONITOR_KEY)) {
+                // 执行监控，搜集数据
                 collect(invoker, invocation, result, RpcContext.getContext().getRemoteHost(), Long.valueOf(invocation.getAttachment(MONITOR_FILTER_START_TIME)), false);
+                // 减少当前调用数
                 getConcurrent(invoker, invocation).decrementAndGet(); // count down
             }
         }

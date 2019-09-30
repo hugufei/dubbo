@@ -31,7 +31,7 @@ import java.util.List;
 /**
  * ListenerInvoker
  *
- * 该类实现了Invoker，是服务引用监听器的包装类。
+ * 该类实现了Invoker，是服务引用监听器的包装类。[装饰者模式]
  *
  * 用到了装饰模式，其中很多实现方法直接调用了invoker的方法。
  *

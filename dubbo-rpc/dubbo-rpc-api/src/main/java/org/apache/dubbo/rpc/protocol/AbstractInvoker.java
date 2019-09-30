@@ -136,6 +136,12 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
         return getInterface() + " -> " + (getUrl() == null ? "" : getUrl().toString());
     }
 
+    //该方法做了一些公共的操作: 比如
+    // 1) 服务引用销毁的检测，
+    // 2) 加入附加值，
+    // 3) 加入调用链实体域到会话域中等。
+    //
+    // 然后执行了doInvoke抽象方法。各协议自己去实现。然后就是执行到doInvoke方法了
     @Override
     public Result invoke(Invocation inv) throws RpcException {
         // 如果服务引用销毁，则打印告警日志，但是通过

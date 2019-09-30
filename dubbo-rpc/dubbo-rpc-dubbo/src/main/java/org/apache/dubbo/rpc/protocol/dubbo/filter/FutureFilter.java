@@ -36,6 +36,8 @@ import static org.apache.dubbo.rpc.Constants.$INVOKE;
 
 /**
  * EventFilter
+ *
+ * 消费端处理：处理异步和同步调用结果的过滤器。
  */
 @Activate(group = CommonConstants.CONSUMER)
 public class FutureFilter extends ListenableFilter {
@@ -48,18 +50,23 @@ public class FutureFilter extends ListenableFilter {
 
     @Override
     public Result invoke(final Invoker<?> invoker, final Invocation invocation) throws RpcException {
+        // 该方法是真正的调用方法的执行
         fireInvokeCallback(invoker, invocation);
         // need to configure if there's return value before the invocation in order to help invoker to judge if it's
         // necessary to return future.
+        // 需要在调用之前配置是否有返回值，以帮助调用者判断是否有必要返回future对象。
         return invoker.invoke(invocation);
     }
 
+    // 调用方法的执行
     private void fireInvokeCallback(final Invoker<?> invoker, final Invocation invocation) {
         final ConsumerMethodModel.AsyncMethodInfo asyncMethodInfo = getAsyncMethodInfo(invoker, invocation);
         if (asyncMethodInfo == null) {
             return;
         }
+        // 获得调用的方法
         final Method onInvokeMethod = asyncMethodInfo.getOninvokeMethod();
+        // 获得调用的服务
         final Object onInvokeInst = asyncMethodInfo.getOninvokeInstance();
 
         if (onInvokeMethod == null && onInvokeInst == null) {
@@ -68,12 +75,15 @@ public class FutureFilter extends ListenableFilter {
         if (onInvokeMethod == null || onInvokeInst == null) {
             throw new IllegalStateException("service:" + invoker.getUrl().getServiceKey() + " has a oninvoke callback config , but no such " + (onInvokeMethod == null ? "method" : "instance") + " found. url:" + invoker.getUrl());
         }
+        // 如果不可以访问，则设置为可访问
         if (!onInvokeMethod.isAccessible()) {
             onInvokeMethod.setAccessible(true);
         }
 
+        // 获得参数数组
         Object[] params = invocation.getArguments();
         try {
+            // 调用方法
             onInvokeMethod.invoke(onInvokeInst, params);
         } catch (InvocationTargetException e) {
             fireThrowCallback(invoker, invocation, e.getTargetException());
@@ -82,6 +92,7 @@ public class FutureFilter extends ListenableFilter {
         }
     }
 
+    // 监听器使用 - 正常的返回结果的处理
     private void fireReturnCallback(final Invoker<?> invoker, final Invocation invocation, final Object result) {
         final ConsumerMethodModel.AsyncMethodInfo asyncMethodInfo = getAsyncMethodInfo(invoker, invocation);
         if (asyncMethodInfo == null) {
@@ -105,7 +116,9 @@ public class FutureFilter extends ListenableFilter {
 
         Object[] args = invocation.getArguments();
         Object[] params;
+        // 获得返回结果类型
         Class<?>[] rParaTypes = onReturnMethod.getParameterTypes();
+        // 设置参数和返回结果
         if (rParaTypes.length > 1) {
             if (rParaTypes.length == 2 && rParaTypes[1].isAssignableFrom(Object[].class)) {
                 params = new Object[2];
@@ -120,6 +133,7 @@ public class FutureFilter extends ListenableFilter {
             params = new Object[]{result};
         }
         try {
+            // 调用方法
             onReturnMethod.invoke(onReturnInst, params);
         } catch (InvocationTargetException e) {
             fireThrowCallback(invoker, invocation, e.getTargetException());
@@ -128,6 +142,7 @@ public class FutureFilter extends ListenableFilter {
         }
     }
 
+    // 监听器使用 - 异常抛出时的结果处理。
     private void fireThrowCallback(final Invoker<?> invoker, final Invocation invocation, final Throwable exception) {
         final ConsumerMethodModel.AsyncMethodInfo asyncMethodInfo = getAsyncMethodInfo(invoker, invocation);
         if (asyncMethodInfo == null) {
@@ -166,6 +181,7 @@ public class FutureFilter extends ListenableFilter {
                 } else {
                     params = new Object[]{exception};
                 }
+                // 调用下一个调用连
                 onthrowMethod.invoke(onthrowInst, params);
             } catch (Throwable e) {
                 logger.error(invocation.getMethodName() + ".call back method invoke error . callback method :" + onthrowMethod + ", url:" + invoker.getUrl(), e);
@@ -175,6 +191,7 @@ public class FutureFilter extends ListenableFilter {
         }
     }
 
+    //构造AsyncMethodInfo信息
     private ConsumerMethodModel.AsyncMethodInfo getAsyncMethodInfo(Invoker<?> invoker, Invocation invocation) {
         final ConsumerModel consumerModel = ApplicationModel.getConsumerModel(invoker.getUrl().getServiceKey());
         if (consumerModel == null) {
@@ -199,16 +216,22 @@ public class FutureFilter extends ListenableFilter {
         return asyncMethodInfo;
     }
 
+    // 监听器
     class FutureListener implements Listener {
+
+        // 处理正常结果
         @Override
         public void onResponse(Result result, Invoker<?> invoker, Invocation invocation) {
             if (result.hasException()) {
+                //触发异常
                 fireThrowCallback(invoker, invocation, result.getException());
             } else {
+                //触发return
                 fireReturnCallback(invoker, invocation, result.getValue());
             }
         }
 
+        // 处理异常结果
         @Override
         public void onError(Throwable t, Invoker<?> invoker, Invocation invocation) {
 

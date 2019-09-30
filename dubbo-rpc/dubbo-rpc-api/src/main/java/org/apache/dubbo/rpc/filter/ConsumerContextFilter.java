@@ -74,7 +74,7 @@ public class ConsumerContextFilter extends ListenableFilter {
     static class ConsumerContextListener implements Listener {
         @Override
         public void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation) {
-            // 设置附加值
+            // 把结果中的附加值放入到上下文中
             RpcContext.getServerContext().setAttachments(appResponse.getAttachments());
         }
 

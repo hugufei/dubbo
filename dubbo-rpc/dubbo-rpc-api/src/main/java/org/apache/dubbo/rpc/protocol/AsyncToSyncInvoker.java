@@ -52,7 +52,9 @@ public class AsyncToSyncInvoker<T> implements Invoker<T> {
         Result asyncResult = invoker.invoke(invocation);
 
         try {
+            // 如果是同步的调用
             if (InvokeMode.SYNC == ((RpcInvocation)invocation).getInvokeMode()) {
+                // 从异步结果中get结果
                 asyncResult.get();
             }
         } catch (InterruptedException e) {
@@ -67,6 +69,7 @@ public class AsyncToSyncInvoker<T> implements Invoker<T> {
         } catch (Throwable e) {
             throw new RpcException(e.getMessage(), e);
         }
+        // 返回异步结果
         return asyncResult;
     }
 

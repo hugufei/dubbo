@@ -91,6 +91,7 @@ public class ConsumerMethodModel {
     }
 
 
+    // 异步方法信息
     public static class AsyncMethodInfo {
         // callback instance when async-call is invoked
         private Object oninvokeInstance;
